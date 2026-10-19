@@ -79,6 +79,7 @@ def check_repo():
         for bad in INTERNAL_PATHS:
             if f == bad or f.startswith(bad): pr.append(f'내부 파일이 저장소에 추적됨: {f}'); break
         if f.startswith('assets/vendor/') or not f.endswith(TEXT_EXT) or f == 'assets/data/market.json': continue
+        if f == 'tools/security_check.py': continue   # 패턴 정의 자체가 패턴에 걸리므로 이 파일은 건너뜀
         s = read(f)
         for name, rx in SECRET_PATTERNS.items():
             for m in rx.finditer(s):
