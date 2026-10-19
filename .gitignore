@@ -1,0 +1,12 @@
+# 비밀값·로컬 전용
+.env
+.env.*
+*.key
+# 백업·임시
+_backup_*/
+*.log
+__pycache__/
+.hallmark/
+# OS
+Thumbs.db
+.DS_Store

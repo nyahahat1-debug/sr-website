@@ -1,0 +1,12 @@
+/* 주식회사 에스알 · 디자인 토큰 (v2 · 2026-10-17). 각 페이지 인라인 CSS 의 :root 와 동일 — 이식용 사본 */
+:root{
+  --paper:#EDF2F7;--paper-2:#E3EAF1;--white:#F7FAFC;
+  --ink:#0D1B2A;--slate:#1A2E44;--slate2:#23415C;
+  --sky:#0077B6;--sky2:#00B4D8;--sky3:#90E0EF;--steel:#023E8A;--sun:#E8A317;
+  --line:#C8D8E8;--line-dk:rgba(255,255,255,.12);--muted:#546E7A;--muted-dk:#90AFC4;
+  --serif:var(--sans);   /* 제목도 고딕(Pretendard) — 2026-10-17 사용자 결정 */
+  --sans:'Pretendard Variable','Pretendard',-apple-system,system-ui,sans-serif;
+  --mono:'IBM Plex Mono','Pretendard Variable','Pretendard',monospace;
+  --r:6px;--r-s:4px;
+  --ease-out:cubic-bezier(.23,1,.32,1);--ease-in-out:cubic-bezier(.77,0,.175,1);
+}
