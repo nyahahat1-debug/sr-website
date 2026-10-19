@@ -698,6 +698,23 @@ footer{background:var(--ink);padding:56px 0 30px}
 @media(max-width:860px){.market-section .mk-hd{grid-template-columns:1fr}.market-section .mk-hd p{padding-bottom:0}}
 .ec-market .ec-modes-s{flex-wrap:wrap}
 
+
+/* ── 도입부 v2: 제목 줄 단위 등장 + 밑줄 그리기. 사진 없는 페이지(.ph-text)는 글자 전용 ── */
+.ph-h1 .hl{display:block;opacity:0;transform:translateY(24px);filter:blur(6px);animation:phLineUp .9s var(--ease-out) both}
+.ph-h1 .hl:nth-child(1){animation-delay:.25s}.ph-h1 .hl:nth-child(2){animation-delay:.42s}.ph-h1 .hl:nth-child(3){animation-delay:.59s}.ph-h1 .hl:nth-child(4){animation-delay:.76s}
+.ph-left .ph-h1.split{animation:none;opacity:1;transform:none}
+.ph-h1 em{text-decoration:none;background:linear-gradient(var(--sun),var(--sun)) no-repeat 0 94%/0% .08em;animation:phLine .7s var(--ease-out) 1.2s both}
+.ph-text{padding:clamp(56px,8vw,110px) 0 clamp(44px,6vw,76px)}
+.ph-text .ph-inner{display:block}
+.ph-text .ph-left{margin:0;max-width:880px}
+.ph-text .ph-h1{font-size:clamp(38px,5.6vw,72px)}
+.ph-text .ph-sub{max-width:640px;font-size:17px;margin-top:22px}
+.ph-text .ph-cta{margin-top:30px}
+@keyframes phLineUp{from{opacity:0;transform:translateY(24px);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
+@keyframes phLine{from{background-size:0% .08em}to{background-size:100% .08em}}
+@media(max-width:700px){.ph-text .ph-h1{font-size:clamp(32px,9vw,44px)}}
+@media(prefers-reduced-motion:reduce){.ph-h1 .hl{animation:none;opacity:1;transform:none;filter:none}.ph-h1 em{animation:none;background-size:100% .08em}}
+
 </style>
 </head>
 <body><a class="skip-link" href="#main">본문으로 바로가기</a><div id="progress"></div>
@@ -1133,6 +1150,7 @@ footer{background:var(--ink);padding:56px 0 30px}
       <h2 class="sec-h2">오늘의 전력 시세</h2>
       <p class="sec-lead">전력거래소가 공개하는 SMP(계통한계가격)와 REC 현물시장 가격을 매일 받아 보여드립니다. 아래 계산기의 발전판매 단가는 이 시세를 기준으로 계산합니다.</p>
     </div>
+    <div id="mkSum"></div>
     <div id="mkChart" aria-live="polite"></div>
   </div>
 </section>
@@ -1331,13 +1349,17 @@ if(af){
 })();
 </script>
 <script type="module">
-import { renderMarketChart } from './assets/js/market/chart.js';
-fetch('assets/data/market.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).then(d => { const el = document.getElementById('mkChart'); if (d && el) renderMarketChart(el, d, { theme: 'light', initial: 'smpDaily' }); else if (el) el.closest('section').hidden = true; }).catch(() => { const el = document.getElementById('mkChart'); if (el) el.closest('section').hidden = true; });
+import { renderMarketChart, renderMarketSummary } from './assets/js/market/chart.js';
+fetch('assets/data/market.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).then(d => { const el = document.getElementById('mkChart'); if (d && el) { renderMarketSummary(document.getElementById('mkSum'), d, { theme: 'light' }); renderMarketChart(el, d, { theme: 'light', initial: 'smpDaily' }); } else if (el) el.closest('section').hidden = true; }).catch(() => { const el = document.getElementById('mkChart'); if (el) el.closest('section').hidden = true; });
 </script>
 <script type="module">
 import { mountCalculator } from './assets/js/economics/ui.js';
 const q = new URLSearchParams(location.search);
 mountCalculator(document.getElementById('ecCalc'), { prefill: { capacityKw: +q.get('kw') || 500, mode: q.get('mode') === 'sell' ? 'sell' : 'self', tariffId: q.get('tariff') || undefined, preset: q.get('preset') || undefined } });
+</script>
+<script>
+/* 도입부 제목을 줄 단위로 나눠 차례로 떠오르게 한다 (em 이 줄을 넘으면 각 줄에 다시 연다) */
+(function(){var h=document.querySelector('.ph-h1');if(!h||h.querySelector('.hl'))return;var parts=h.innerHTML.split(/<br\s*\/?>/i);if(parts.length<2)return;var open=false,out=[];for(var i=0;i<parts.length;i++){var p=parts[i].trim();if(open)p='<em>'+p;var o=(p.match(/<em>/g)||[]).length,c=(p.match(/<\/em>/g)||[]).length;open=o>c;if(open)p+='</em>';out.push('<span class="hl">'+p+'</span>');}h.innerHTML=out.join('');h.classList.add('split');})();
 </script>
 </body>
 </html>

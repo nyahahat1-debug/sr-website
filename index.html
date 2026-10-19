@@ -928,12 +928,14 @@ html{overflow-x:clip}
   .cc-t{font-size:14px;margin-top:2px}
 }
 
-/* ── 분석 안내 옆 시세 카드 ── */
-.ab-inner{grid-template-columns:minmax(0,1fr) minmax(300px,460px);align-items:start}
-.ab-side{display:grid;gap:14px;justify-items:start}
-.ab-side .mk{width:100%}
-.ab-side:has(#mkHome:empty){display:flex}
-@media(max-width:960px){.ab-inner{grid-template-columns:1fr}}
+
+/* ── 오늘의 전력 시세 (메인) ── */
+.market-home{padding:clamp(56px,7vw,92px) 0;background:var(--ink);color:#F7FAFC}
+.mkh-hd{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px 40px;align-items:end;margin-bottom:22px}
+.mkh-hd h2{font-size:clamp(26px,3vw,38px);font-weight:800;letter-spacing:-.025em;color:#F7FAFC}
+.mkh-hd p{font-size:15.5px;line-height:1.7;color:#9FB6C8;margin-top:10px;max-width:640px}
+.mkh-hd .btn{white-space:nowrap}
+@media(max-width:760px){.mkh-hd{grid-template-columns:1fr;align-items:start}.mkh-hd .btn{justify-self:start}}
 
 </style>
 
@@ -1254,10 +1256,24 @@ setTimeout(function(){ if(!window.__sr3dReady)window.__sr3dFail('timeout'); },/[
         <div class="ab-s"><span class="ab-n">04</span><span class="ab-t">리포트 제공</span></div>
       </div>
     </div>
-    <div class="ab-side">
-      <div id="mkHome"></div>
+    <div>
       <a href="analysis.html" class="btn btn-sky">분석 방법 자세히 보기</a>
     </div>
+  </div>
+</section>
+
+<!-- ⑤-1 오늘의 전력 시세 (SMP·REC 자동 갱신) -->
+<section class="market-home" id="market" aria-labelledby="mkh-h">
+  <div class="wrap">
+    <div class="mkh-hd reveal">
+      <div>
+        <h2 id="mkh-h">오늘의 전력 시세</h2>
+        <p>전력거래소가 공개하는 SMP(계통한계가격)와 REC 현물시장 가격을 매일 두 번 받아 갱신합니다. 경제성 분석의 발전판매 단가는 이 시세를 기준으로 계산합니다.</p>
+      </div>
+      <a href="analysis.html#market" class="btn btn-ghost-dk">시세 기준으로 경제성 계산하기</a>
+    </div>
+    <div id="mkHomeSum"></div>
+    <div id="mkHome"></div>
   </div>
 </section>
 
@@ -1535,8 +1551,13 @@ if(bw)bw.querySelectorAll('.bar').forEach(b=>b.style.height='6px');
 })();
 </script>
 <script type="module">
-import { renderMarketChart } from './assets/js/market/chart.js';
-fetch('assets/data/market.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).then(d => { const el = document.getElementById('mkHome'); if (d && el) renderMarketChart(el, d, { theme: 'dark', initial: 'smpDaily' }); }).catch(() => {});
+import { renderMarketChart, renderMarketSummary } from './assets/js/market/chart.js';
+const mkSec = document.getElementById('market');
+fetch('assets/data/market.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).then(d => {
+  if (!d) { if (mkSec) mkSec.hidden = true; return; }
+  renderMarketSummary(document.getElementById('mkHomeSum'), d, { theme: 'dark' });
+  renderMarketChart(document.getElementById('mkHome'), d, { theme: 'dark', initial: 'smpDaily' });
+}).catch(() => { if (mkSec) mkSec.hidden = true; });
 </script>
 <script type="module" src="assets/js/scene3d/main.js" onerror="window.__sr3dFail&&window.__sr3dFail('module-load')"></script>
 </body>
