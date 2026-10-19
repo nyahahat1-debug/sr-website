@@ -1,0 +1,15 @@
+# GitHub Pages(Jekyll) 설정 — 사이트에 내보내지 않을 경로. 공개 저장소지만 사이트 주소로는 서비스하지 않는다.
+exclude:
+  - README.md
+  - SECURITY.md
+  - PROJECT_HANDOFF.md
+  - docs/
+  - tools/
+  - prototype-3d.html
+  - .claude/
+  - .mcp.json
+  - .github/
+  - _backup_*/
+  - _private/
+include:
+  - .well-known

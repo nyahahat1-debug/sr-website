@@ -10,3 +10,9 @@ __pycache__/
 # OS
 Thumbs.db
 .DS_Store
+# 내부 문서·개인 도구 설정은 공개 저장소에 올리지 않는다 (사이트 저장소는 Public)
+PROJECT_HANDOFF.md
+docs/
+_private/
+.claude/
+.mcp.json
