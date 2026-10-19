@@ -7,6 +7,8 @@
 const WD = ['일', '월', '화', '수', '목', '금', '토'];
 const fmtDate = d => { const t = new Date(d + 'T00:00:00'); return `${d.replace(/-/g, '.')} (${WD[t.getDay()]})`; };
 const num = v => (v == null ? '—' : Number(v).toLocaleString('ko-KR'));
+// market.json 은 자동 수집 파일이므로, 화면에 넣는 문자열은 전부 이스케이프한다 (XSS 방지)
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const SERIES = [
   { key: 'smpDaily',   tab: 'SMP 일별',     unit: '원/kWh', title: 'SMP (육지 일 가중평균)', x: r => r.d, fmt: v => v.toFixed(1), diffLabel: '전일 대비', xfmt: s => s.slice(5).replace('-', '.'), ticks: 5,
     when: r => fmtDate(r.d), rows: r => [['단순평균', r.s == null ? '—' : r.s.toFixed(1)], ['집계 시간', r.n ? r.n + '시간' : '—']] },
@@ -179,13 +181,13 @@ export function renderMarketChart(root, data, opts = {}) {
     hv.append(hvLine, hvDot); svg.append(hv);
     const tip = h('div', { class: 'mk-tip' });
     let hi = -1;
-    const diffHtml = (a, b) => { if (!b) return '—'; const d = a - b; return `<span class="${d > 0 ? 'up' : d < 0 ? 'down' : ''}">${d > 0 ? '▲ ' : d < 0 ? '▼ ' : '— '}${cur.fmt(Math.abs(d))}</span>`; };
+    const diffHtml = (a, b) => { if (!b) return '—'; const d = a - b; return `<span class="${d > 0 ? 'up' : d < 0 ? 'down' : ''}">${d > 0 ? '▲ ' : d < 0 ? '▼ ' : '— '}${esc(cur.fmt(Math.abs(d)))}</span>`; };
     const showAt = i => {
       hi = i; const r = rows[i], p = rows[i - 1]; const [x, y] = pts[i];
       hvLine.setAttribute('x1', x); hvLine.setAttribute('x2', x); hvDot.setAttribute('cx', x); hvDot.setAttribute('cy', y);
-      tip.innerHTML = `<small>${cur.when(r)}</small><b>${cur.fmt(r.v)}<i>${cur.unit}</i></b>` +
-        cur.rows(r).map(([k, v]) => `<div class="row"><span>${k}</span><span>${v}</span></div>`).join('') +
-        `<div class="row"><span>${cur.diffLabel}</span>${diffHtml(r.v, p && p.v)}</div>`;
+      tip.innerHTML = `<small>${esc(cur.when(r))}</small><b>${esc(cur.fmt(r.v))}<i>${esc(cur.unit)}</i></b>` +
+        cur.rows(r).map(([k, v]) => `<div class="row"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join('') +
+        `<div class="row"><span>${esc(cur.diffLabel)}</span>${diffHtml(r.v, p && p.v)}</div>`;
       const sr = svg.getBoundingClientRect(), wr = svgWrap.getBoundingClientRect();
       const left = sr.left - wr.left + x / W * sr.width, top = sr.top - wr.top + y / H * sr.height;
       tip.style.left = left.toFixed(1) + 'px'; tip.style.top = top.toFixed(1) + 'px';

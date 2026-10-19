@@ -1,6 +1,8 @@
 name: 전력 시세 수집 (SMP·REC)
 
 # 매일 06:30·18:30 KST (= 21:30·09:30 UTC) 에 공공데이터포털에서 SMP·REC 를 받아 assets/data/market.json 갱신
+# 보안: 액션은 커밋 SHA 고정, 권한은 contents:write 만, 인증키는 저장소 비밀값(DATA_GO_KR_KEY)으로만 전달,
+#       수집기가 스키마 검증을 통과한 데이터만 쓰고(검증 실패 시 종료코드 1 → 커밋 없음) 오류 문자열에서 키를 지운다.
 on:
   schedule:
     - cron: '30 21 * * *'
@@ -10,21 +12,31 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: market-collect
+  cancel-in-progress: false
+
 jobs:
   collect:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.12'
-      - name: 시세 수집
+      - name: 시세 수집 (스키마 검증 포함)
         env:
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
         run: python tools/market_collect.py --out assets/data/market.json
+      - name: 결과 재검증
+        run: python tools/security_check.py --ci
       - name: 변경분 커밋
         run: |
           git config user.name "market-bot"
           git config user.email "market-bot@users.noreply.github.com"
           git add assets/data/market.json
-          if git diff --cached --quiet; then echo "변경 없음"; else git commit -m "시세 갱신 $(date -u +'%Y-%m-%d %H:%M UTC')" && git push; fi
+          if git diff --cached --quiet; then echo "변경 없음"; exit 0; fi
+          git commit -m "시세 갱신 $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git pull --rebase origin main
+          git push

@@ -2,12 +2,14 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; img-src 'self' data:; media-src 'self'; connect-src 'self'; worker-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>전력 시세 차트 미리보기 · 주식회사 에스알</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" integrity="sha384-GIdEBaqGN9mNkDkMkzMHW8EKUqtpPIe/sLj1X7DIrnc9uPtLROJgmuDlh+3rBw0j" crossorigin="anonymous">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--paper:#EDF2F7;--white:#F7FAFC;--ink:#0D1B2A;--slate:#1A2E44;--sky:#0077B6;--line:#C8D8E8;--muted:#546E7A;--sans:'Pretendard Variable','Pretendard',system-ui,sans-serif}
@@ -24,6 +26,7 @@ h1{font-size:clamp(24px,3vw,34px);font-weight:800;letter-spacing:-.03em;line-hei
 .note b{color:var(--ink);font-weight:600}
 @media(max-width:900px){.grid{grid-template-columns:1fr}.wrap{padding:0 20px}}
 </style>
+<script src="assets/js/site.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -38,11 +41,6 @@ h1{font-size:clamp(24px,3vw,34px);font-weight:800;letter-spacing:-.03em;line-hei
   <p class="note"><b>움직임</b> 선이 왼쪽에서 오른쪽으로 그려지고, 아래 색이 깔린 뒤 끝점에 현재값이 붙습니다. 탭을 누르면 다시 그려집니다. 동작 감소 설정에서는 애니메이션 없이 바로 표시됩니다.<br>
   <b>표시 항목</b> 현재값·직전 대비 변화·기준일·출처. REC는 화·목 거래일에만 값이 생기므로 "거래일별"로 표시합니다.</p>
 </div>
-<script type="module">
-import { renderMarketChart } from './assets/js/market/chart.js';
-const data = await fetch('assets/data/market.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null) || await fetch('assets/data/market.sample.json', { cache: 'no-cache' }).then(r => r.json());
-renderMarketChart(document.getElementById('mkDark'), data, { theme: 'dark', initial: 'smpDaily' });
-renderMarketChart(document.getElementById('mkLight'), data, { theme: 'light', initial: 'rec' });
-</script>
+<script type="module" src="assets/js/pages/market-preview.js"></script>
 </body>
 </html>

@@ -1,0 +1,2 @@
+import { renderMarketChart, renderMarketSummary } from '../market/chart.js';
+fetch('assets/data/market.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).then(d => { const el = document.getElementById('mkChart'); if (d && el) { renderMarketSummary(document.getElementById('mkSum'), d, { theme: 'light' }); renderMarketChart(el, d, { theme: 'light', initial: 'smpDaily' }); } else if (el) el.closest('section').hidden = true; }).catch(() => { const el = document.getElementById('mkChart'); if (el) el.closest('section').hidden = true; });

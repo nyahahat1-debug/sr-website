@@ -6,11 +6,16 @@
 - 로컬 미리보기: `python -m http.server 8931` 후 http://localhost:8931
 
 ## 구성
-- `index.html` 메인(시작 화면 → 타이포 인트로 → 3D 스크롤 스토리), `business.html` 사업영역, `analysis.html` 경제성 분석(시세 차트·계산기), `cases.html`·`case-*.html` 프로젝트, `about.html`, `contact.html`
-- `assets/js/scene3d/` 3D 스토리(Three.js, 모델은 `assets/models/`), `assets/js/economics/` 경제성 계산기(요금제·시세), `assets/js/market/` 시세 차트
+- `index.html` 메인(시작 화면 → 타이포 인트로 → 3D 스크롤 스토리 → 오늘의 전력 시세), `business.html` 사업영역, `analysis.html` 경제성 분석(시세 차트·계산기), `cases.html`·`case-*.html` 프로젝트, `about.html`, `contact.html`(문의 폼·지도), `privacy.html` 개인정보처리방침
+- `assets/js/pages/` 페이지별 스크립트, `assets/js/site.js` 공통 보안 스크립트, `assets/js/scene3d/` 3D 스토리(Three.js, 모델은 `assets/models/`), `assets/js/economics/` 경제성 계산기, `assets/js/market/` 시세 차트
+- `map-embed.html` 카카오맵 전용 sandbox iframe 페이지
 - `tools/market_collect.py` 전력거래소 SMP·REC 수집기 → `assets/data/market.json` (`.github/workflows/market.yml` 이 매일 06:30·18:30 KST 실행, 저장소 비밀값 `DATA_GO_KR_KEY` 필요)
-- `docs/` 설계·작업 기록 (`docs/PHASE2_시제품_보고.md`, `docs/DESIGN_V2.md`)
+- `tools/security_meta.py`, `tools/security_check.py` 보안 메타 생성·점검 (`.github/workflows/security-check.yml` 이 푸시마다 실행)
+- `_config.yml` GitHub Pages 게시 제외 목록
 
-## 주의
-- 효성첨단소재 사례의 투자비·회수기간은 게시하지 않습니다. 미확정 실적 수치는 `<template data-v2>` 로 숨겨 두었습니다.
-- 공공데이터포털 인증키는 코드에 넣지 말고 환경변수/저장소 비밀값으로만 씁니다.
+## 보안 규칙
+- 모든 페이지에 Content-Security-Policy 메타가 걸려 있어 인라인 `<script>` 와 `onclick` 같은 인라인 속성은 동작하지 않습니다. 스크립트는 `assets/js/` 아래 파일로 두고 `<script src>` 로 불러오세요.
+- 새 외부 도메인(폰트·API·iframe)이 필요하면 `tools/security_meta.py` 의 `EXTRA` 에 추가한 뒤 `python tools/security_meta.py --write` 를 실행합니다.
+- 커밋 전 `python tools/security_check.py` 로 점검합니다. 같은 검사가 GitHub Actions(보안 점검)에서 다시 돌아갑니다.
+- 인증키·토큰은 코드와 문서에 쓰지 않고 환경변수/저장소 비밀값으로만 씁니다. 내부 문서(`docs/`, `_private/`)와 개인 도구 설정(`.claude/`)은 공개 저장소에 올리지 않습니다.
+- 취약점 신고: [SECURITY.md](SECURITY.md)

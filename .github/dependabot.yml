@@ -1,0 +1,8 @@
+# GitHub Actions 에서 쓰는 액션의 보안 업데이트를 매주 PR 로 받는다 (SHA 고정 버전도 함께 올려 준다)
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [security]

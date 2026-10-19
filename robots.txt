@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /market-preview.html
+Disallow: /map-embed.html

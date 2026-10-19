@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://ssl.daumcdn.net https://*.daumcdn.net https://*.kakaocdn.net https://*.kakao.com; style-src 'unsafe-inline' https://*.daumcdn.net https://*.kakaocdn.net https://*.kakao.com; img-src https: data: blob:; font-src https://*.daumcdn.net https://*.kakaocdn.net; connect-src https://*.kakao.com https://*.kakaocdn.net https://*.daumcdn.net https://*.daum.net; frame-src https://*.kakao.com https://*.daum.net; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>오시는 길 지도 · 주식회사 에스알</title>
+<script>
+// 점검용: 상위 문서에 단계·오류를 알린다 (상위 문서는 무시해도 된다)
+try { parent.postMessage({ srMap: 'head' }, '*'); } catch (e) {}
+addEventListener('error', function (e) { try { parent.postMessage({ srMap: 'error', msg: String(e.message || e.type), src: String(e.filename || (e.target && e.target.src) || '') }, '*'); } catch (x) {} }, true);
+</script>
+<style>html,body{margin:0;padding:0;background:#EDF2F7;overflow:hidden}.root_daum_roughmap{width:100%!important}</style>
+</head>
+<body>
+<!-- 카카오맵 퍼가기(roughmap)는 외부 스크립트를 실행하므로, 문의 폼이 있는 contact.html 에 직접 넣지 않고
+     sandbox iframe(이 페이지) 안에서만 실행한다. 쿠키·저장소·상위 문서 접근 없음. ?m=1 전주사무실 / ?m=2 김제사무실 -->
+<script src="https://ssl.daumcdn.net/dmaps/map_js_init/roughmapLoader.js" charset="UTF-8" class="daum_roughmap_loader_script"></script>
+<script>
+(function () {
+  var maps = { 1: { ts: '1783917539923', key: 'r5rn7ekzft9' }, 2: { ts: '1783917483310', key: 'r5w2qnuwir7' } };
+  var m = maps[/[?&]m=2(&|$)/.test(location.search) ? 2 : 1];
+  var el = document.createElement('div');
+  el.id = 'daumRoughmapContainer' + m.ts; el.className = 'root_daum_roughmap root_daum_roughmap_landing';
+  document.body.appendChild(el);
+  // 상위 문서(contact.html)에 지도 표시 여부만 알린다 — 점검용. 상위 문서는 이 메시지를 쓰지 않아도 된다.
+  var report = function (tag) { try { parent.postMessage({ srMap: tag, map: !!document.querySelector('.wrap_map') }, '*'); } catch (e) {} };
+  try {
+    if (window.daum && daum.roughmap) {
+      new daum.roughmap.Lander({ timestamp: m.ts, key: m.key, mapWidth: '640', mapHeight: '240' }).render();
+    }
+  } catch (e) { /* 지도 스크립트 오류는 iframe 안에서만 끝난다 */ }
+  report('script');
+  addEventListener('load', function () { report('load'); });
+})();
+</script>
+</body>
+</html>

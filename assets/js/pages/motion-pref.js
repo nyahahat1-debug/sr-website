@@ -1,0 +1,1 @@
+(function(){try{if(!matchMedia('(prefers-reduced-motion:reduce)').matches&&!/[?&]nointro(=|&|$)/.test(location.search)&&(window.scrollY||0)<40)document.getElementById('stage').classList.add('intro');}catch(e){}})();

@@ -7,7 +7,7 @@
       개발계정 트래픽 100회/일 — 최초 적재 약 25회, 이후 매일 3회 안팎.
 출력 스키마는 assets/data/market.sample.json 과 같고, 계산기용 기준값(latest / avg)을 덧붙인다.
 """
-import json, os, sys, time, datetime as dt, urllib.request, urllib.parse, argparse, statistics
+import json, os, re, sys, time, math, datetime as dt, urllib.request, urllib.parse, argparse, statistics
 
 SMP_URL = 'https://apis.data.go.kr/B552115/SmpWithForecastDemand/getSmpWithForecastDemand'
 REC_URL = 'https://apis.data.go.kr/B552115/RecMarketInfo2/getRecMarketInfo2'
@@ -76,6 +76,58 @@ def fetch_rec(key, months):
                     'vol': int(float(r.get('landTrdRecValue') or 0)), 'close': int(round(float(r.get('clsPrc') or 0))), 'jeju': int(round(float(r.get('jejuAvgPrc') or 0))) or None})
     return out, calls
 
+DATE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}$'); MONTH_RE = re.compile(r'^\d{4}-\d{2}$')
+
+def _num(v, lo, hi):
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) and lo <= v <= hi
+
+def validate(data):
+    """market.json 스키마·범위 검증. 외부 API 응답을 그대로 사이트에 싣지 않기 위한 마지막 관문 (문제 목록 반환, 비어 있으면 정상)"""
+    pr = []
+    if data.get('sample') not in (True, False): pr.append('sample 은 true/false')
+    if not isinstance(data.get('updated'), str) or not re.match(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+09:00$', data['updated']): pr.append('updated 형식')
+    for k in ('smpDaily', 'smpMonthly', 'rec'):
+        if not isinstance(data.get(k), list): pr.append(f'{k} 는 배열'); data[k] = []
+    prev = ''
+    for r in data['smpDaily']:
+        d = r.get('d')
+        if not (isinstance(d, str) and DATE_RE.match(d)): pr.append(f'smpDaily.d 형식 {d!r}'); continue
+        if d <= prev: pr.append(f'smpDaily 날짜 순서/중복 {d}')
+        prev = d
+        if not _num(r.get('v'), 0, 2000): pr.append(f'smpDaily.v 범위 {d}')
+        for k in ('s', 'j'):
+            if r.get(k) is not None and not _num(r[k], 0, 2000): pr.append(f'smpDaily.{k} 범위 {d}')
+        if not (isinstance(r.get('n'), int) and 1 <= r['n'] <= 48): pr.append(f'smpDaily.n 범위 {d}')   # 같은 날 재공표 행이 겹쳐 24를 넘는 날이 있어 48까지 허용
+    for r in data['smpMonthly']:
+        m = r.get('m')
+        if not (isinstance(m, str) and MONTH_RE.match(m)): pr.append(f'smpMonthly.m 형식 {m!r}'); continue
+        if not _num(r.get('v'), 0, 2000): pr.append(f'smpMonthly.v 범위 {m}')
+        if not (isinstance(r.get('n'), int) and 1 <= r['n'] <= 31): pr.append(f'smpMonthly.n 범위 {m}')
+    prev = ''
+    for r in data['rec']:
+        d = r.get('d')
+        if not (isinstance(d, str) and DATE_RE.match(d)): pr.append(f'rec.d 형식 {d!r}'); continue
+        if d <= prev: pr.append(f'rec 날짜 순서/중복 {d}')
+        prev = d
+        if not _num(r.get('v'), 0, 1_000_000): pr.append(f'rec.v 범위 {d}')
+        for k in ('hi', 'lo', 'close', 'jeju'):
+            if r.get(k) is not None and not _num(r[k], 0, 1_000_000): pr.append(f'rec.{k} 범위 {d}')
+        if r.get('vol') is not None and not _num(r['vol'], 0, 1_000_000_000): pr.append(f'rec.vol 범위 {d}')
+    for k, v in (data.get('avg') or {}).items():
+        if v is not None and not _num(v, 0, 1_000_000): pr.append(f'avg.{k} 범위')
+    for k, v in (data.get('sources') or {}).items():
+        if not isinstance(v, str) or len(v) > 200 or '<' in v: pr.append(f'sources.{k} 형식')
+    errs = data.get('errors')
+    if not isinstance(errs, list) or any(not isinstance(e, str) or len(e) > 300 or '<' in e for e in errs): pr.append('errors 형식')
+    return pr
+
+def redact(msg, key):
+    """오류 메시지에 인증키나 serviceKey 값이 섞여 들어가지 않도록 지운다 (market.json 은 공개 파일)"""
+    msg = str(msg)
+    if key: msg = msg.replace(key, '***').replace(urllib.parse.quote(key, safe=''), '***')
+    msg = re.sub(r'serviceKey=[^&\s]+', 'serviceKey=***', msg)
+    return re.sub(r'[<>]', '', msg)[:300]
+
 def monthly_from_daily(daily):
     m = {}
     for r in daily: m.setdefault(r['d'][:7], []).append(r['v'])
@@ -103,11 +155,11 @@ def main():
     try:
         new, c = fetch_smp(key, smp_days); calls += c
         merged = {r['d']: r for r in smp}; merged.update({r['d']: r for r in new}); smp = [merged[k] for k in sorted(merged)]
-    except Exception as e: errors.append(f'SMP: {e}')
+    except Exception as e: errors.append('SMP: ' + redact(e, key))
     try:
         new, c = fetch_rec(key, args.rec_months if not rec else 3); calls += c
         merged = {r['d']: r for r in rec}; merged.update({r['d']: r for r in new}); rec = [merged[k] for k in sorted(merged)]
-    except Exception as e: errors.append(f'REC: {e}')
+    except Exception as e: errors.append('REC: ' + redact(e, key))
     if not smp and not rec:
         print('수집 실패:', errors, file=sys.stderr); sys.exit(1)
     cut = (today - dt.timedelta(days=args.days)).isoformat(); smp = [r for r in smp if r['d'] > cut]
@@ -122,6 +174,9 @@ def main():
         'avg': {'smp30': avg_last(smp, 30, today), 'smp365': avg_last(smp, 365, today), 'rec30': avg_last(rec, 30, today), 'rec365': avg_last(rec, 365, today)},
         'errors': errors, 'apiCalls': calls,
     }
+    problems = validate(data)
+    if problems:
+        print('검증 실패 — 파일을 쓰지 않습니다:', problems[:10], file=sys.stderr); sys.exit(1)
     os.makedirs(os.path.dirname(args.out) or '.', exist_ok=True)
     with open(args.out, 'w', encoding='utf-8') as f: json.dump(data, f, ensure_ascii=False, separators=(',', ':'))
     print(f"ok: SMP {len(smp)}일 (최신 {data['latest']['smp'] and data['latest']['smp']['d']}), REC {len(rec)}거래일 (최신 {data['latest']['rec'] and data['latest']['rec']['d']}), 호출 {calls}회, 오류 {errors or '없음'}")

@@ -1,0 +1,6 @@
+Contact: mailto:hbok1234@naver.com
+Contact: tel:+82-63-544-8142
+Expires: 2027-10-19T00:00:00.000Z
+Preferred-Languages: ko, en
+Canonical: https://nyahahat1-debug.github.io/sr-website/.well-known/security.txt
+Policy: https://github.com/nyahahat1-debug/sr-website/blob/main/SECURITY.md

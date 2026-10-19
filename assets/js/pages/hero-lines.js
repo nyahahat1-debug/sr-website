@@ -1,0 +1,2 @@
+/* 도입부 제목을 줄 단위로 나눠 차례로 떠오르게 한다 (em 이 줄을 넘으면 각 줄에 다시 연다) */
+(function(){var h=document.querySelector('.ph-h1');if(!h||h.querySelector('.hl'))return;var parts=h.innerHTML.split(/<br\s*\/?>/i);if(parts.length<2)return;var open=false,out=[];for(var i=0;i<parts.length;i++){var p=parts[i].trim();if(open)p='<em>'+p;var o=(p.match(/<em>/g)||[]).length,c=(p.match(/<\/em>/g)||[]).length;open=o>c;if(open)p+='</em>';out.push('<span class="hl">'+p+'</span>');}h.innerHTML=out.join('');h.classList.add('split');})();
