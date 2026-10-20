@@ -66,37 +66,56 @@ def num(v, default=None):
 def build(site_cfgs, site_list, fetch_site, today):
     """site_list: /monitoring/site 응답(현장 배열). fetch_site(site_id) -> {'united':…, 'day':…, 'month':…, 'year':…}"""
     out, errors = [], []
+    ydays = (today.day - 2) if today.day >= 2 else None
+    U = lambda d: ((d.get('united') or {}).get('unitedSiteInfo') or {})
     for cfg in site_cfgs:
-        row = None
-        if cfg.get('id'): row = next((r for r in site_list if r.get('SITE_ID') == cfg['id']), None)
-        if row is None and cfg.get('match'): row = next((r for r in site_list if cfg['match'] in (r.get('DESCRIPTION') or '')), None)
-        if row is None: errors.append(f"현장을 찾지 못함: {cfg.get('name')}"); continue
-        sid = row['SITE_ID']
-        try:
-            d = fetch_site(sid)
-        except Exception as e:
-            errors.append(f"{cfg.get('name')}: {redact(e)}"); continue
-        u = (d.get('united') or {}).get('unitedSiteInfo') or {}
-        day = (d.get('day') or {}).get('solraDayWork') or {}
-        month = (d.get('month') or {}).get('solraMonthWork') or {}
-        year = (d.get('year') or {}).get('solraYearWork') or {}
-        mrun = [num(x, 0) for x in (month.get('runData') or [])]
-        yrun = [num(x, 0) for x in (year.get('runData') or [])]
-        ydays = (today.day - 2) if today.day >= 2 else None
+        # 한 항목이 포털 현장 여러 곳을 묶을 수 있다 (ids / matches) → 합산해서 한 카드로 보여준다
+        ids = [x for x in (cfg.get('ids') or ([cfg['id']] if cfg.get('id') else [])) if x]
+        matches = [x for x in (cfg.get('matches') or ([cfg['match']] if cfg.get('match') else [])) if x]
+        rows = [r for r in site_list if r.get('SITE_ID') in ids]
+        for m in matches:
+            r = next((r for r in site_list if m in (r.get('DESCRIPTION') or '') and r not in rows), None)
+            if r: rows.append(r)
+            elif not rows or len(matches) > 1: errors.append(f"현장을 찾지 못함: {cfg.get('name')} ({m})")
+        if not rows: continue
+        parts = []
+        for row in rows:
+            try: parts.append((row, fetch_site(row['SITE_ID'])))
+            except Exception as e: errors.append(f"{cfg.get('name')} {row.get('SITE_ID')}: {redact(e)}")
+        if not parts: continue
+        def S(fn):   # 부분 합 (값이 하나도 없으면 None)
+            vals = [v for v in (fn(row, d) for row, d in parts) if v is not None]
+            return round(sum(vals), 2) if vals else None
+        def AVG(fn):
+            v = S(fn); return round(v / len(parts), 2) if v is not None else None
+        def series(key, sub, n):
+            acc = [0.0] * n; seen = False
+            for _, d in parts:
+                arr = [num(x, 0) for x in (((d.get(key) or {}).get(sub) or {}).get('runData') or [])]
+                if arr: seen = True
+                for i, v in enumerate(arr[:n]): acc[i] += v
+            return [round(x, 1) for x in acc] if seen else []
+        first_day = next((((d.get('day') or {}).get('solraDayWork') or {}) for _, d in parts), {})
+        nday = len(first_day.get('runTime') or [])
+        portal_cap = S(lambda row, d: num(U(d).get('PVPCS_Pcs_Capa'), num(row.get('totalCapacity'))))
         out.append({
-            'id': sid, 'name': cfg.get('name') or (row.get('DESCRIPTION') or '').strip(), 'portalName': (row.get('DESCRIPTION') or '').strip(),
-            'page': cfg.get('page'), 'label': cfg.get('label'), 'sido': row.get('SIDO_NAME'), 'sigu': row.get('SIGU_NAME'),
-            'capacityKw': num(u.get('PVPCS_Pcs_Capa'), num(row.get('totalCapacity'))),
-            'nowKw': num(u.get('PVPCS_Pac'), num(row.get('PVPCS_Pac'))),
-            'todayKwh': num(u.get('PVPCS_Daily_P'), num(row.get('PVPCS_Daily_P'))),
-            'todayHours': num(u.get('PVPCS_Day'), num(row.get('Daily_Time'))),
-            'yesterdayKwh': (mrun[ydays] if ydays is not None and ydays < len(mrun) else None),
-            'monthKwh': num(u.get('PVPCS_CurrentMonth_P')), 'monthHours': num(u.get('PVPCS_Month')),
-            'prevMonthKwh': num(u.get('PVPCS_AfterMonth_P')), 'totalKwh': num(u.get('PVPCS_Total_P')),
-            'inverters': int(row.get('INV_CNT') or 0), 'running': int(row.get('runCount') or 0),
-            'status': row.get('run_status'), 'comm': row.get('communicationStatus'),
-            'daySeries': {'t': list(day.get('runTime') or []), 'kw': [round(num(x, 0), 1) for x in (day.get('runData') or [])]},
-            'monthSeries': [round(x, 1) for x in mrun], 'yearSeries': [round(x, 1) for x in yrun],
+            'id': parts[0][0]['SITE_ID'], 'ids': [row['SITE_ID'] for row, _ in parts],
+            'name': cfg.get('name') or (parts[0][0].get('DESCRIPTION') or '').strip(),
+            'portalName': ' + '.join((row.get('DESCRIPTION') or '').strip() for row, _ in parts),
+            'page': cfg.get('page'), 'label': cfg.get('label'), 'sido': parts[0][0].get('SIDO_NAME'), 'sigu': parts[0][0].get('SIGU_NAME'),
+            'capacityKw': num(cfg.get('capacityKw')) or portal_cap,          # 홈페이지 표기 용량(모듈 기준) 우선, 없으면 포털(인버터) 용량
+            'portalCapacityKw': portal_cap,
+            'nowKw': S(lambda row, d: num(U(d).get('PVPCS_Pac'), num(row.get('PVPCS_Pac')))),
+            'todayKwh': S(lambda row, d: num(U(d).get('PVPCS_Daily_P'), num(row.get('PVPCS_Daily_P')))),
+            'todayHours': AVG(lambda row, d: num(U(d).get('PVPCS_Day'), num(row.get('Daily_Time')))),
+            'yesterdayKwh': S(lambda row, d: (lambda m: m[ydays] if ydays is not None and ydays < len(m) else None)([num(x, 0) for x in (((d.get('month') or {}).get('solraMonthWork') or {}).get('runData') or [])])),
+            'monthKwh': S(lambda row, d: num(U(d).get('PVPCS_CurrentMonth_P'))), 'monthHours': AVG(lambda row, d: num(U(d).get('PVPCS_Month'))),
+            'prevMonthKwh': S(lambda row, d: num(U(d).get('PVPCS_AfterMonth_P'))), 'totalKwh': S(lambda row, d: num(U(d).get('PVPCS_Total_P'))),
+            'inverters': sum(int(row.get('INV_CNT') or 0) for row, _ in parts), 'running': sum(int(row.get('runCount') or 0) for row, _ in parts),
+            'status': 'Run' if any(row.get('run_status') == 'Run' for row, _ in parts) else parts[0][0].get('run_status'),
+            'comm': next((row.get('communicationStatus') for row, _ in parts if row.get('communicationStatus') not in (None, 'None')), 'None'),
+            'daySeries': {'t': list(first_day.get('runTime') or []), 'kw': series('day', 'solraDayWork', nday)},
+            'monthSeries': series('month', 'solraMonthWork', 31), 'yearSeries': series('year', 'solraYearWork', 12),
         })
     tot = lambda k: round(sum((s.get(k) or 0) for s in out), 1) if out else None
     data = {
@@ -120,11 +139,12 @@ def validate(data):
     if not isinstance(data.get('sites'), list): pr.append('sites 배열'); return pr
     for s in data['sites']:
         if not re.match(r'^[A-Z]\d{3,6}$', str(s.get('id', ''))): pr.append(f"id 형식 {s.get('id')!r}")
+        if 'ids' in s and (not isinstance(s['ids'], list) or not s['ids'] or any(not re.match(r'^[A-Z]\d{3,6}$', str(x)) for x in s['ids'])): pr.append(f"ids 형식 {s.get('id')}")
         for k in ('name', 'portalName', 'page', 'label', 'sido', 'sigu', 'status', 'comm'):
             v = s.get(k)
-            if v is not None and (not isinstance(v, str) or len(v) > 80 or '<' in v): pr.append(f'{k} 형식 {s.get("id")}')
+            if v is not None and (not isinstance(v, str) or len(v) > (200 if k == 'portalName' else 80) or '<' in v): pr.append(f'{k} 형식 {s.get("id")}')
         if s.get('page') and not re.match(r'^[a-z0-9-]+\.html$', s['page']): pr.append(f'page 형식 {s.get("id")}')
-        for k, hi in (('capacityKw', 100000), ('nowKw', 100000), ('todayKwh', 1e6), ('todayHours', 24), ('yesterdayKwh', 1e6), ('monthKwh', 1e8), ('monthHours', 800), ('prevMonthKwh', 1e8), ('totalKwh', 1e10)):
+        for k, hi in (('capacityKw', 100000), ('portalCapacityKw', 100000), ('nowKw', 100000), ('todayKwh', 1e6), ('todayHours', 24), ('yesterdayKwh', 1e6), ('monthKwh', 1e8), ('monthHours', 800), ('prevMonthKwh', 1e8), ('totalKwh', 1e10)):
             if not _ok(s.get(k), 0, hi): pr.append(f'{k} 범위 {s.get("id")}')
         ds = s.get('daySeries') or {}
         if not (isinstance(ds.get('t'), list) and isinstance(ds.get('kw'), list) and len(ds['t']) == len(ds['kw']) and len(ds['t']) <= 150): pr.append(f'daySeries {s.get("id")}')

@@ -42,6 +42,7 @@ function injectCSS() { if (document.getElementById('gn-css')) return; const s = 
 const h = (tag, attrs = {}, ...kids) => { const el = tag.includes(':') ? document.createElementNS('http://www.w3.org/2000/svg', tag.split(':')[1]) : document.createElement(tag); for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v); for (const k of kids) el.append(k); return el; };
 const svgEl = (t, a = {}) => h('svg:' + t, a);
 const fmt0 = v => (v == null ? '—' : Math.round(v).toLocaleString('ko-KR'));
+const fmtCap = v => (v == null ? '—' : Number.isInteger(v) ? fmt0(v) : Number(v).toLocaleString('ko-KR', { maximumFractionDigits: 2 }));
 const fmt1 = v => (v == null ? '—' : Number(v).toLocaleString('ko-KR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
 const kwh = v => (v == null ? '—' : v >= 10000 ? (v / 1000).toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + ' MWh' : fmt0(v) + ' kWh');
 const whenText = d => { const t = new Date(d.updated); return isNaN(t) ? '' : `${t.getMonth() + 1}.${t.getDate()} ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')} 기준`; };
@@ -77,14 +78,14 @@ export function renderGenerationOverview(root, data) {
   box.append(h('div', { class: 'gn-tot' },
     tile('지금 출력', fmt1(t.nowKw), 'kW'), tile('오늘 발전량', fmt0(t.todayKwh), 'kWh'),
     tile('이달 누적', kwh(t.monthKwh).replace(/ (MWh|kWh)$/, ''), (t.monthKwh || 0) >= 10000 ? 'MWh' : 'kWh'),
-    tile('설비 용량', fmt0(t.capacityKw), `kW · ${t.sites || data.sites.length}개 현장`)));
+    tile('설비 용량', fmtCap(t.capacityKw), `kW · ${t.sites || data.sites.length}개 현장`)));
   const grid = h('div', { class: 'gn-grid' });
   for (const s of data.sites) {
     const on = (s.nowKw || 0) > 0 && s.status === 'Run';
     const card = h(s.page ? 'a' : 'div', s.page ? { class: 'gn-c', href: s.page } : { class: 'gn-c' },
       h('div', { class: 'gn-cl' }, s.label || [s.sido, s.sigu].filter(Boolean).join(' ')),
       h('div', { class: 'gn-cn' }, s.name),
-      h('div', { class: 'gn-cs' }, h('span', { class: 'gn-dot' + (on ? '' : ' off') }), `${on ? '발전 중' : '대기'} · 지금 ${fmt1(s.nowKw)} kW · 용량 ${fmt0(s.capacityKw)} kW`),
+      h('div', { class: 'gn-cs' }, h('span', { class: 'gn-dot' + (on ? '' : ' off') }), `${on ? '발전 중' : '대기'} · 지금 ${fmt1(s.nowKw)} kW · 용량 ${fmtCap(s.capacityKw)} kW`),
       sparkline(s),
       h('div', { class: 'gn-row' }, h('span', {}, '오늘'), h('b', {}, fmt0(s.todayKwh) + ' kWh')),
       h('div', { class: 'gn-row' }, h('span', {}, '어제'), h('b', {}, fmt0(s.yesterdayKwh) + ' kWh')),
@@ -103,7 +104,7 @@ export function renderGenerationSite(root, data, opts = {}) {
   const on = (s.nowKw || 0) > 0 && s.status === 'Run';
   const box = h('div', { class: 'gn gn-site' });
   box.append(h('div', { class: 'gn-site-h' }, h('h3', {}, '지금 이 현장은'), h('div', { class: 'gn-cs' }, h('span', { class: 'gn-dot' + (on ? '' : ' off') }), `${on ? '발전 중' : '대기'} · 인버터 ${s.running || 0}/${s.inverters || 0} 운전 · ${whenText(data)}`)));
-  box.append(h('div', { class: 'gn-tot' }, tile('지금 출력', fmt1(s.nowKw), `kW / ${fmt0(s.capacityKw)}`), tile('오늘 발전량', fmt0(s.todayKwh), 'kWh'), tile('어제', fmt0(s.yesterdayKwh), 'kWh'), tile('이달 누적', kwh(s.monthKwh).replace(/ (MWh|kWh)$/, ''), (s.monthKwh || 0) >= 10000 ? 'MWh' : 'kWh')));
+  box.append(h('div', { class: 'gn-tot' }, tile('지금 출력', fmt1(s.nowKw), `kW / ${fmtCap(s.capacityKw)}`), tile('오늘 발전량', fmt0(s.todayKwh), 'kWh'), tile('어제', fmt0(s.yesterdayKwh), 'kWh'), tile('이달 누적', kwh(s.monthKwh).replace(/ (MWh|kWh)$/, ''), (s.monthKwh || 0) >= 10000 ? 'MWh' : 'kWh')));
   box.append(sparkline(s, 640, 110));
   box.append(h('div', { class: 'gn-foot' }, h('span', {}, `준공 후 총 누적 ${kwh(s.totalKwh)} · 지난달 ${kwh(s.prevMonthKwh)}`), h('span', {}, '출처: ' + (data.source || '현장 모니터링'))));
   root.append(box); return true;
