@@ -8,6 +8,7 @@
 # 실행: powershell -NoProfile -ExecutionPolicy Bypass -File tools\qhub_local.ps1
 # 로그: _private\qhub-runner\run.log
 $ErrorActionPreference = 'Stop'
+$env:PYTHONIOENCODING = 'utf-8'; [Console]::OutputEncoding = [Text.Encoding]::UTF8   # 로그에 한글이 깨지지 않게
 $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $envFile = Join-Path $repoRoot '_private\qhub.env'
 $runner = Join-Path $repoRoot '_private\qhub-runner'
