@@ -117,7 +117,7 @@ export function renderGenerationOverview(root, data) {
       h('div', { class: 'gn-row' }, h('span', {}, '이달 누적'), h('b', {}, kwh(s.monthKwh))));
     grid.append(card);
   }
-  box.append(grid, h('div', { class: 'gn-foot' }, h('span', {}, whenText(data) + ' · 매시 갱신 · 20분 단위 계측값'), h('span', {}, '출처: ' + (data.source || '현장 모니터링'))));
+  box.append(grid, h('div', { class: 'gn-foot' }, h('span', {}, whenText(data) + ' · 매시 갱신')));
   root.append(box); return true;
 }
 
@@ -131,6 +131,6 @@ export function renderGenerationSite(root, data, opts = {}) {
   box.append(h('div', { class: 'gn-site-h' }, h('h3', {}, '지금 이 현장은'), h('div', { class: 'gn-cs' }, h('span', { class: 'gn-dot' + (on ? '' : ' off') }), `${on ? '발전 중' : '대기'} · ${s.selfUse ? '피드' : '인버터'} ${s.running || 0}/${s.inverters || 0} 운전 · ${whenText({ updated: s.updated || data.updated })}`)));
   box.append(h('div', { class: 'gn-tot' }, tile('지금 출력', fmt1(s.nowKw), `kW / ${fmtCap(s.capacityKw)}`), tile('오늘 발전량', fmt0(s.todayKwh), 'kWh'), tile('어제', fmt0(s.yesterdayKwh), 'kWh'), tile('이달 누적', kwh(s.monthKwh).replace(/ (MWh|kWh)$/, ''), (s.monthKwh || 0) >= 10000 ? 'MWh' : 'kWh')));
   box.append(sparkline(s, 640, 110));
-  box.append(h('div', { class: 'gn-foot' }, h('span', {}, s.selfUse ? `올해 누적 ${kwh(s.totalKwh)} · 지난달 ${kwh(s.prevMonthKwh)} · 전량 자가소비` : `준공 후 총 누적 ${kwh(s.totalKwh)} · 지난달 ${kwh(s.prevMonthKwh)}`), h('span', {}, '출처: ' + (s.source || data.source || '현장 모니터링'))));
+  box.append(h('div', { class: 'gn-foot' }, h('span', {}, s.selfUse ? `올해 누적 ${kwh(s.totalKwh)} · 지난달 ${kwh(s.prevMonthKwh)} · 전량 자가소비` : `준공 후 총 누적 ${kwh(s.totalKwh)} · 지난달 ${kwh(s.prevMonthKwh)}`), h('span', {}, whenText({ updated: s.updated || data.updated }))));
   root.append(box); return true;
 }

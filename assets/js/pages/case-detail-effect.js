@@ -56,6 +56,6 @@ Promise.all([
   ];
   for (const [k, v] of rows) d.append(h('div', 'hy-row', h('span', 'k', k), h('span', 'v', v)));
   root.append(d);
-  root.append(h('p', 'hy-note', `* 발전량은 월간 모니터링 실측치이고, 시간대 배분은 해당 월의 태양광 발전 시간 분포로 추정한 값입니다. 요금 단가는 ${TARIFF_SOURCE} 기준이며, 기후환경요금 9원·연료비조정액 5원/kWh 는 가정값입니다. 배출권 가치는 감축량에 시세를 곱한 환산액으로 실제 판매 수익이 아닙니다. 출처: 한국거래소 배출권시장.`));
+  root.append(h('p', 'hy-note', `* 발전량은 월별 실측치이고, 시간대 배분은 해당 월의 태양광 발전 시간 분포로 추정한 값입니다. 요금 단가는 ${TARIFF_SOURCE} 기준이며, 기후환경요금 9원·연료비조정액 5원/kWh 는 가정값입니다. 배출권 가치는 감축량에 시세를 곱한 환산액으로 실제 판매 수익이 아닙니다. 출처: 한국거래소 배출권시장.`));
   const wrap = root.closest('.hy-effect'); if (wrap) wrap.hidden = false;
 }).catch(() => {});
