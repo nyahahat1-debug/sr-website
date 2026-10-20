@@ -9,7 +9,7 @@ Q.HUB 는 세션 쿠키 방식(폼 로그인 /mgt/login/doLogin.do). 자격증�
 한 번 실행에 로그인 1 + 실시간 3 + 월별 보고서(없는 달만, 최대 N) 호출. 월별 발전량은 보고서(일별 달력 합)로 쌓고,
 오늘·이달·올해 실시간 값과 시간별 출력은 live 에 넣는다. 응답 형식이 바뀌면 validate() 가 막고 파일을 쓰지 않는다.
 """
-import json, os, re, sys, math, calendar, datetime as dt, urllib.request, urllib.parse, argparse, http.cookiejar
+import json, os, re, sys, math, calendar, datetime as dt, urllib.request, urllib.parse, urllib.error, argparse, http.cookiejar
 
 BASE = 'https://qhub.qcells.com'
 KST = dt.timezone(dt.timedelta(hours=9))
@@ -32,8 +32,9 @@ class Client:
         self.calls += 2
         final = r.geturl()
         if 'login' in final and 'error' in final: raise RuntimeError('로그인 실패(아이디·비밀번호 확인)')
-        st = self.post('/mgt/session/status.do', None, method='GET')
-        return st
+        if 'login' in final: raise RuntimeError('로그인 후에도 로그인 페이지에 머묾 (추가 인증 또는 접속 차단 가능성)')
+        self.last_status = self.post('/mgt/session/status.do', None, method='GET')
+        return self.last_status
 
     def post(self, path, payload, method='POST'):
         data = json.dumps(payload).encode() if payload is not None else None
@@ -133,7 +134,12 @@ def validate(data):
 # ── 실행 ────────────────────────────────────────────────────────────
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument('--out', default='assets/data/hyosung-generation.json'); ap.add_argument('--fixture-dir'); ap.add_argument('--max-months', type=int, default=6)
+    ap.add_argument('--status-file', default='assets/data/qhub-status.json', help='성공/실패와 (자격증명을 지운) 오류 메시지를 남기는 작은 파일 — 로그 없이도 원인을 볼 수 있게')
     a = ap.parse_args()
+    def status(ok, **kw):
+        try:
+            with open(a.status_file, 'w', encoding='utf-8') as f: json.dump({'ok': ok, 'at': dt.datetime.now(KST).strftime('%Y-%m-%dT%H:%M:%S+09:00'), **kw}, f, ensure_ascii=False)
+        except Exception: pass
     now = dt.datetime.now(KST); cur = now.strftime('%Y-%m')
     prev = {}
     if os.path.exists(a.out):
@@ -166,16 +172,22 @@ def main():
                 except Exception as e: errors.append(f'{ym}: ' + redact(e, pw, uid))
             data = build(prev, realtime, sites, chart, reports, now)
             data['errors'] = errors
+        except urllib.error.HTTPError as e:
+            msg = f'HTTP {e.code} {e.reason} ({redact(getattr(e, "url", ""), pw, uid)[:80]})' + (' — 해외 IP 차단 가능성' if e.code in (403, 406, 429) else '')
+            status(False, stage='fetch', error=msg, calls=c.calls); print('수집 실패:', msg, file=sys.stderr); sys.exit(1)
         except Exception as e:
-            print('수집 실패:', redact(e, pw, uid), file=sys.stderr); sys.exit(1)
+            msg = redact(e, pw, uid); status(False, stage='fetch', error=msg, calls=c.calls, session=str(getattr(c, 'last_status', ''))[:120].replace('<', ''))
+            print('수집 실패:', msg, file=sys.stderr); sys.exit(1)
         finally:
             c.logout()
         calls = c.calls
     data['apiCalls'] = calls
     pr = validate(data)
-    if pr: print('검증 실패 — 파일을 쓰지 않습니다:', pr[:10], file=sys.stderr); sys.exit(1)
+    if pr:
+        status(False, stage='validate', error='; '.join(pr[:5])[:300]); print('검증 실패 — 파일을 쓰지 않습니다:', pr[:10], file=sys.stderr); sys.exit(1)
     os.makedirs(os.path.dirname(a.out) or '.', exist_ok=True)
     with open(a.out, 'w', encoding='utf-8') as f: json.dump(data, f, ensure_ascii=False, separators=(',', ':'))
+    status(True, calls=calls, months=len(data['months']), newMonths=len(wanted), errors=data['errors'][:3])
     L = data['live']
     print(f"ok: 오늘 {L.get('todayKwh')} kWh, 이달 {L.get('monthKwh')} kWh, 월별 {len(data['months'])}개월(새로 {len(wanted)}), 호출 {calls}회, 오류 {data['errors'] or '없음'}")
 
