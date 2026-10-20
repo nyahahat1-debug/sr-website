@@ -108,6 +108,14 @@ def check_market():
         pr += [f'market.json: {x}' for x in mc.validate(data)[:10]]
     except Exception as e:
         pr.append(f'market.json 검사 실패: {e}')
+    g = os.path.join(ROOT, 'assets', 'data', 'generation.json')
+    if os.path.exists(g):
+        try:
+            spec = importlib.util.spec_from_file_location('generation_collect', os.path.join(ROOT, 'tools', 'generation_collect.py'))
+            gc = importlib.util.module_from_spec(spec); spec.loader.exec_module(gc)
+            pr += [f'generation.json: {x}' for x in gc.validate(json.load(io.open(g, encoding='utf-8')))[:10]]
+        except Exception as e:
+            pr.append(f'generation.json 검사 실패: {e}')
     return pr
 
 def check_misc():

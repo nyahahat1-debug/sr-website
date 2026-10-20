@@ -1,0 +1,8 @@
+{
+  "_설명": "HI SMART(현대에너지솔루션) 모니터링에서 홈페이지에 보여줄 현장. match 는 포털의 현장명에 포함된 글자, page 는 홈페이지 상세 페이지. 포털 현장 ID(id)를 알면 적고, 모르면 비워 두면 이름으로 찾는다.",
+  "sites": [
+    { "id": "M5268", "match": "새운", "name": "새운태양광 발전소", "page": "case-naewoon.html", "label": "노지 발전소 · 전북 김제" },
+    { "id": "", "match": "부안 동물", "name": "동물태양광 발전소", "page": "case-dongmul.html", "label": "축사 지붕 · 전북 부안" },
+    { "id": "", "match": "전주 도민", "name": "전주 PGA골프장 도민태양광", "page": "case-pga.html", "label": "건물·주차장 · 전북 전주" }
+  ]
+}

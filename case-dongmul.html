@@ -379,6 +379,10 @@ footer{background:var(--ink);padding:56px 0 30px}
 @keyframes dhUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.dh-img,.dh-img img,.dh-img .sph-fallback,.dh-left .back,.dh-tag,.dh-h1,.dh-meta{animation:none}}
 
+
+/* ── 발전 현황 위젯 ── */
+.gen-case{padding:0 0 clamp(28px,4vw,44px)}
+
 </style><script src="assets/js/site.js"></script>
 </head><body><a class="skip-link" href="#main">본문으로 바로가기</a><div id="progress"></div><header>
   <div class="wrap nav">
@@ -407,6 +411,9 @@ footer{background:var(--ink);padding:56px 0 30px}
     </div>
   </div>
 </section>
+<div class="gen-case" hidden>
+  <div class="wrap"><div id="genSite"></div></div>
+</div>
 
 <section class="detail-body">
   <div class="wrap">
@@ -513,4 +520,5 @@ footer{background:var(--ink);padding:56px 0 30px}
   </div>
 </footer>
 <script src="assets/js/pages/reveal-case.js"></script><script src="assets/js/pages/nav.js"></script>
+<script type="module" src="assets/js/pages/case-generation.js"></script>
 </body></html>
