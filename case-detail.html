@@ -475,7 +475,7 @@ footer{background:var(--ink);padding:56px 0 30px}
           <div class="spec-row"><span class="spec-k">접속반·모니터링</span><span class="spec-v">인버터 일체형 접속반 · 한화큐셀 모니터링</span></div>
         </div>
         <h2>예상치와 실제 운영 결과</h2>
-        <p>경제성 분석 단계에서 제시한 예상치를 준공 후 실측 발전 데이터로 검증합니다. 2026년 4월 한 달간 실측 발전량은 216,359kWh로, 연간 예상 발전량(약 1,979,732kWh)의 월 환산치를 상회했습니다.</p>
+        <p>경제성 분석 단계에서 제시한 예상치를 준공 후 실측 발전 데이터로 검증합니다. 준공 후 월 실측 발전량은 연간 예상 발전량(약 1,979,732kWh)의 월 환산치를 꾸준히 넘고 있으며, 달별 수치는 아래 월별 경제효과 표에서 확인할 수 있습니다.</p>
         <div class="before-after reveal stagger">
           <div class="ba-col">
             <div class="ba-label">월 전기요금 규모</div>
@@ -485,17 +485,17 @@ footer{background:var(--ink);padding:56px 0 30px}
           <div class="ba-col">
             <div class="ba-label">월 전기요금 절감 (실측 기반 추정)</div>
             <div class="ba-val after">약 3,709<span style="font-size:14px;font-weight:400;color:var(--muted)">만 원</span></div>
-            <div class="ba-sub">2026.04 실측 발전량 × 현행 요금 기준</div>
+            <div class="ba-sub">월 실측 발전량 × 현행 요금 기준 (예시 월)</div>
           </div>
         </div>
-        <span id="tou" style="position:relative;top:-80px"></span><h3 style="font-size:16px;font-weight:800;margin:26px 0 10px">실측 발전량의 시간대 배분 (2026.04)</h3>
+        <span id="tou" style="position:relative;top:-80px"></span><h3 style="font-size:16px;font-weight:800;margin:26px 0 10px">실측 발전량의 시간대 배분 (예시 월)</h3>
         <div class="spec-table reveal">
           <div class="spec-row"><span class="spec-k">경부하 (22~08시) × 116.0원/kWh</span><span class="spec-v">약 4,873 kWh · 약 57만 원</span></div>
           <div class="spec-row"><span class="spec-k">중간부하 (08~15·21~22시) × 133.4원/kWh</span><span class="spec-v">약 165,059 kWh · 약 2,202만 원</span></div>
           <div class="spec-row"><span class="spec-k">최대부하 (15~21시) × 150.9원/kWh</span><span class="spec-v">약 46,427 kWh · 약 701만 원</span></div>
           <div class="spec-row"><span class="spec-k">기후환경요금·연료비조정액·부가세·전력기금 포함</span><span class="spec-v hi">월 합계 약 3,709만 원</span></div>
         </div>
-        <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-top:10px">* 발전량은 원격 모니터링 실측치(2026.04, 총 216,359.1kWh)를 시간대별 발전 패턴에 따라 배분한 값입니다. 절감액은 산업용(을) 고압A 선택Ⅱ 봄·가을철 전력량요금에 기후환경요금(9원/kWh)·연료비조정액(5원/kWh)·부가가치세(10%)·전력산업기반기금(3.7%)을 반영한 추정치이며, 계절과 요금 개정에 따라 달라집니다. 기본요금·역률요금 변동은 포함하지 않습니다.</p>
+        <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-top:10px">* 예시 월의 실측 발전량(총 216,359.1kWh)을 시간대별 발전 패턴에 따라 배분한 값입니다. 절감액은 산업용(을) 고압A 선택Ⅱ 봄·가을철 전력량요금에 기후환경요금(9원/kWh)·연료비조정액(5원/kWh)·부가가치세(10%)·전력산업기반기금(3.7%)을 반영한 추정치이며, 계절과 요금 개정에 따라 달라집니다. 기본요금·역률요금 변동은 포함하지 않습니다.</p>
         <h2 id="effect">실측 발전량 기준 월별 경제효과</h2>
         <p>월별 실측 발전량에 현행 요금과 배출권 시세를 적용해 달마다 다시 계산합니다. 자가소비 현장이라 판매 수익이 아니라 <b>안 낸 전기요금</b>이 절감액이고, 여기에 온실가스 감축량을 배출권 시세로 환산한 가치를 더한 것이 경제효과 합계입니다.</p>
         <div class="hy-effect" hidden><div id="hyEffect"></div></div>
@@ -503,7 +503,7 @@ footer{background:var(--ink);padding:56px 0 30px}
         <p>이 현장은 발전 전력을 전량 자가소비하는 구조로, 발전량만큼 한전 수전 전력이 줄어 온실가스 배출도 함께 감소합니다. 연간 예상 발전량 기준 온실가스 감축량은 약 904.17톤이며, 저감가치는 약 1,266만 원으로 산정됩니다.</p>
         <div class="spec-table reveal">
           <div class="spec-row"><span class="spec-k">연간 온실가스 감축량 (예상 발전량 기준)</span><span class="spec-v">약 904.17 tCO₂ · 가치 약 1,266만 원</span></div>
-          <div class="spec-row"><span class="spec-k">월 실측 발전량 환산 (2026.04)</span><span class="spec-v">약 98.8 tCO₂</span></div>
+          <div class="spec-row"><span class="spec-k">월 실측 발전량 환산 (예시 월)</span><span class="spec-v">약 98.8 tCO₂</span></div>
           <div class="spec-row"><span class="spec-k">RE100 이행</span><span class="spec-v">K-RE100 이행수단 중 ‘자가발전’으로 발전량 전량 인정</span></div>
         </div>
         <p>자가소비형 재생에너지 발전은 K-RE100 이행수단 가운데 ‘자가발전’으로 인정되어, 재생에너지 사용 실적과 온실가스 감축 실적을 동시에 확보할 수 있습니다. RE100 대응이나 온실가스 감축 목표가 있는 기업 사업장에서 전기요금 절감과 함께 이행 실적을 쌓을 수 있는 방식입니다.</p>
@@ -515,7 +515,7 @@ footer{background:var(--ink);padding:56px 0 30px}
         <span id="savings" style="position:relative;top:-80px"></span><div class="rc-head">성과 요약</div>
         <div class="rc-rows">
           <div class="rc-row"><span class="rc-k">설치 용량</span><span class="rc-v"><span class="cu" data-to="1530" data-dec="0">0</span> kW</span></div>
-          <div class="rc-row"><span class="rc-k">월 발전량 (실측 2026.04)</span><span class="rc-v"><span class="cu" data-to="216359" data-dec="0">0</span> kWh</span></div>
+          <div class="rc-row"><span class="rc-k">월 발전량 (실측, 예시 월)</span><span class="rc-v"><span class="cu" data-to="216359" data-dec="0">0</span> kWh</span></div>
           <div class="rc-row"><span class="rc-k">연간 예상 발전량</span><span class="rc-v"><span class="qual">약</span> <span class="cu" data-to="1979732" data-dec="0">0</span> kWh</span></div>
           <div class="rc-row"><span class="rc-k">월 전기료 절감 (추정)</span><span class="rc-v hi"><span class="qual">약</span> 3,709만 원</span></div>
           <div class="rc-row"><span class="rc-k">연간 전기요금 절감효과</span><span class="rc-v hi"><span class="qual">약</span> 3억 8,322만 원</span></div>
