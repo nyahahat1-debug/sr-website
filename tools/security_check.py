@@ -108,6 +108,14 @@ def check_market():
         pr += [f'market.json: {x}' for x in mc.validate(data)[:10]]
     except Exception as e:
         pr.append(f'market.json 검사 실패: {e}')
+    cb = os.path.join(ROOT, 'assets', 'data', 'carbon.json')
+    if os.path.exists(cb):
+        try:
+            spec = importlib.util.spec_from_file_location('carbon_collect', os.path.join(ROOT, 'tools', 'carbon_collect.py'))
+            cc = importlib.util.module_from_spec(spec); spec.loader.exec_module(cc)
+            pr += [f'carbon.json: {x}' for x in cc.validate(json.load(io.open(cb, encoding='utf-8')))[:10]]
+        except Exception as e:
+            pr.append(f'carbon.json 검사 실패: {e}')
     g = os.path.join(ROOT, 'assets', 'data', 'generation.json')
     if os.path.exists(g):
         try:

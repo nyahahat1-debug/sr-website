@@ -10,6 +10,7 @@
 - `assets/js/pages/` 페이지별 스크립트, `assets/js/site.js` 공통 보안 스크립트, `assets/js/scene3d/` 3D 스토리(Three.js, 모델은 `assets/models/`), `assets/js/economics/` 경제성 계산기, `assets/js/market/` 시세 차트
 - `map-embed.html` 카카오맵 전용 sandbox iframe 페이지
 - `tools/market_collect.py` 전력거래소 SMP·REC 수집기 → `assets/data/market.json` (`.github/workflows/market.yml` 이 매일 06:30·18:30 KST 실행, 저장소 비밀값 `DATA_GO_KR_KEY` 필요)
+- `tools/carbon_collect.py` 배출권(KAU) 종가 수집기(한국거래소 공개 조회, 키 없음) → `assets/data/carbon.json` (시세 워크플로에서 함께 실행). 효성 사례 페이지의 월별 경제효과는 `assets/data/hyosung-generation.json` 의 월 발전량 × 요금제(`assets/js/economics/selfuse.js`) + 배출권 시세로 계산
 - `tools/generation_collect.py` 현장 발전 현황 수집기(HI SMART 모니터링) → `assets/data/generation.json` (`.github/workflows/generation.yml` 이 06~20시 KST 매시 실행, 비밀값 `HS3_USER_ID`·`HS3_PASSWORD` 필요, 대상 현장은 `tools/generation_sites.json`). 파일이 없으면 메인·현장 페이지의 발전 현황은 표시되지 않습니다.
 - `tools/security_meta.py`, `tools/security_check.py` 보안 메타 생성·점검 (`.github/workflows/security-check.yml` 이 푸시마다 실행)
 - `_config.yml` GitHub Pages 게시 제외 목록

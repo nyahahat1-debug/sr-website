@@ -380,6 +380,26 @@ footer{background:var(--ink);padding:56px 0 30px}
 @keyframes dhUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.dh-img,.dh-img img,.dh-img .sph-fallback,.dh-left .back,.dh-tag,.dh-h1,.dh-meta{animation:none}}
 
+
+/* ── 실측 발전량 기준 경제효과 표 ── */
+.hy-effect{margin:14px 0 26px}
+.hy-basis{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;color:var(--muted);margin-bottom:10px}
+.hy-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--white)}
+.hy-table{width:100%;border-collapse:collapse;font-size:14px;min-width:620px}
+.hy-table th,.hy-table td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+.hy-table th{font-size:12px;font-weight:600;color:var(--muted);background:var(--paper)}
+.hy-table td.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.hy-table td.hi{font-weight:700;color:var(--sky)}
+.hy-table tfoot td{font-weight:700;background:var(--paper);border-bottom:0}
+.hy-detail{margin-top:14px;border:1px solid var(--line);border-radius:var(--r);padding:12px 16px;background:var(--white)}
+.hy-dt{font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:6px}
+.hy-row{display:flex;justify-content:space-between;gap:16px;padding:6px 0;border-top:1px solid var(--line);font-size:13.5px}
+.hy-row:first-of-type{border-top:0}
+.hy-row .k{color:var(--muted)}
+.hy-row .v{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+.hy-note{font-size:12px;color:var(--muted);line-height:1.6;margin-top:10px}
+@media(max-width:700px){.hy-row{flex-direction:column;gap:2px}.hy-row .v{text-align:left}}
+
 </style><script src="assets/js/site.js"></script>
 </head><body><a class="skip-link" href="#main">본문으로 바로가기</a><div id="progress"></div><header>
   <div class="wrap nav">
@@ -470,6 +490,9 @@ footer{background:var(--ink);padding:56px 0 30px}
           <div class="spec-row"><span class="spec-k">기후환경요금·연료비조정액·부가세·전력기금 포함</span><span class="spec-v hi">월 합계 약 3,709만 원</span></div>
         </div>
         <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-top:10px">* 발전량은 원격 모니터링 실측치(2026.04, 총 216,359.1kWh)를 시간대별 발전 패턴에 따라 배분한 값입니다. 절감액은 산업용(을) 고압A 선택Ⅱ 봄·가을철 전력량요금에 기후환경요금(9원/kWh)·연료비조정액(5원/kWh)·부가가치세(10%)·전력산업기반기금(3.7%)을 반영한 추정치이며, 계절과 요금 개정에 따라 달라집니다. 기본요금·역률요금 변동은 포함하지 않습니다.</p>
+        <h2 id="effect">실측 발전량 기준 월별 경제효과</h2>
+        <p>월간 모니터링 실측 발전량에 현행 요금과 배출권 시세를 적용해 달마다 다시 계산합니다. 자가소비 현장이라 판매 수익이 아니라 <b>안 낸 전기요금</b>이 절감액이고, 여기에 온실가스 감축량을 배출권 시세로 환산한 가치를 더한 것이 경제효과 합계입니다.</p>
+        <div class="hy-effect" hidden><div id="hyEffect"></div></div>
         <h2>온실가스 감축과 RE100 이행</h2>
         <p>이 현장은 발전 전력을 전량 자가소비하는 구조로, 발전량만큼 한전 수전 전력이 줄어 온실가스 배출도 함께 감소합니다. 연간 예상 발전량 기준 온실가스 감축량은 약 904.17톤이며, 저감가치는 약 1,266만 원으로 산정됩니다.</p>
         <div class="spec-table reveal">
@@ -531,4 +554,5 @@ footer{background:var(--ink);padding:56px 0 30px}
   </div>
 </footer>
 <script src="assets/js/pages/reveal-case.js"></script><script src="assets/js/pages/nav.js"></script>
+<script type="module" src="assets/js/pages/case-detail-effect.js"></script>
 </body></html>

@@ -1,6 +1,7 @@
 name: 전력 시세 수집 (SMP·REC)
 
-# 매일 06:30·18:30 KST (= 21:30·09:30 UTC) 에 공공데이터포털에서 SMP·REC 를 받아 assets/data/market.json 갱신
+# 매일 06:30·18:30 KST (= 21:30·09:30 UTC) 에 공공데이터포털에서 SMP·REC 를 받아 assets/data/market.json 갱신,
+# 같은 때 한국거래소 배출권시장에서 KAU 종가를 받아 assets/data/carbon.json 갱신
 # 보안: 액션은 커밋 SHA 고정, 권한은 contents:write 만, 인증키는 저장소 비밀값(DATA_GO_KR_KEY)으로만 전달,
 #       수집기가 스키마 검증을 통과한 데이터만 쓰고(검증 실패 시 종료코드 1 → 커밋 없음) 오류 문자열에서 키를 지운다.
 on:
@@ -29,13 +30,15 @@ jobs:
         env:
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
         run: python tools/market_collect.py --out assets/data/market.json
+      - name: 배출권(KAU) 시세 수집 (KRX 공개 조회, 키 없음)
+        run: python tools/carbon_collect.py --out assets/data/carbon.json || echo "배출권 시세 수집 실패 — 이전 파일 유지"
       - name: 결과 재검증
         run: python tools/security_check.py --ci
       - name: 변경분 커밋
         run: |
           git config user.name "market-bot"
           git config user.email "market-bot@users.noreply.github.com"
-          git add assets/data/market.json
+          git add assets/data/market.json assets/data/carbon.json
           if git diff --cached --quiet; then echo "변경 없음"; exit 0; fi
           git commit -m "시세 갱신 $(date -u +'%Y-%m-%d %H:%M UTC')"
           git pull --rebase origin main
