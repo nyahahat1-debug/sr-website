@@ -19,7 +19,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'tools'))
 import security_meta as SM
 
-PAGE_EXCLUDE = {'prototype-3d.html'}                  # 미게시 시제품 (_config.yml 로 제외)
+PAGE_EXCLUDE = set()
 INLINE_ALLOWED = {'map-embed.html'}                   # sandbox iframe 전용 페이지: 자체 CSP, 인라인 허용
 INTERNAL_PATHS = ['PROJECT_HANDOFF.md', 'docs/', '.claude/', '.mcp.json', '.env', '_private/']
 TEXT_EXT = ('.html', '.js', '.css', '.json', '.py', '.yml', '.yaml', '.md', '.txt', '.xml')
@@ -80,6 +80,7 @@ def check_repo():
             if f == bad or f.startswith(bad): pr.append(f'내부 파일이 저장소에 추적됨: {f}'); break
         if f.startswith('assets/vendor/') or not f.endswith(TEXT_EXT) or f == 'assets/data/market.json': continue
         if f == 'tools/security_check.py': continue   # 패턴 정의 자체가 패턴에 걸리므로 이 파일은 건너뜀
+        if not os.path.exists(os.path.join(ROOT, f)): continue   # 삭제했지만 아직 커밋 전인 파일
         s = read(f)
         for name, rx in SECRET_PATTERNS.items():
             for m in rx.finditer(s):
@@ -115,7 +116,7 @@ def check_misc():
     if not os.path.exists(cfg): pr.append('_config.yml 없음 (Pages 게시 제외 목록)')
     else:
         s = io.open(cfg, encoding='utf-8').read()
-        for need in ('tools/', 'README.md', 'prototype-3d.html', 'docs/', '.claude/'):
+        for need in ('tools/', 'README.md', 'docs/', '.claude/'):
             if need not in s: pr.append(f'_config.yml exclude 에 {need} 없음')
     st = os.path.join(ROOT, '.well-known', 'security.txt')
     if not os.path.exists(st): pr.append('.well-known/security.txt 없음')

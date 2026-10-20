@@ -13,7 +13,7 @@ frame-ancestors 는 meta 로 적용되지 않아 assets/js/site.js 의 프레임
 import base64, hashlib, io, os, re, sys, glob
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXCLUDE = {'prototype-3d.html', 'map-embed.html'}   # 시제품(미게시) · 지도 iframe(자체 CSP 보유)
+EXCLUDE = {'map-embed.html'}   # 지도 iframe(자체 CSP 보유)
 REFERRER = 'strict-origin-when-cross-origin'
 
 # 기본 정책 — 모든 리소스는 자기 출처. 글꼴 CDN 두 곳만 허용. 인라인 스타일은 페이지 CSS 구조상 허용.

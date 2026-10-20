@@ -5,7 +5,6 @@ exclude:
   - PROJECT_HANDOFF.md
   - docs/
   - tools/
-  - prototype-3d.html
   - .claude/
   - .mcp.json
   - .github/

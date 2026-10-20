@@ -122,7 +122,6 @@ footer{background:var(--slate);color:var(--muted-dk);padding:52px 0 36px;font-si
 .biz-caution b{color:var(--slate);font-weight:600}
 @media(max-width:960px){.biz-grid{grid-template-columns:1fr;gap:36px}.biz-tabs{flex-wrap:nowrap}}
 
-
 /* card hover lift */
 @media(hover:hover) and (prefers-reduced-motion:no-preference){
 .biz-check,.biz-right{transition:transform .22s ease,box-shadow .22s ease}
@@ -327,7 +326,6 @@ footer{background:var(--ink);padding:56px 0 30px}
 .biz-caution{margin:0;border-left:none;border-top:1px solid var(--line);background:var(--paper-2);border-radius:0}
 .biz-panel.on{animation:tabIn .22s var(--ease-out)}
 
-
 /* ── 페이지 도입부: 사진이 오른쪽에서 열리고 제목이 사진 위로 겹친다 (현장 상세와 같은 동작) ── */
 .page-hero{padding:clamp(24px,4vw,44px) 0 clamp(40px,6vw,64px);overflow:hidden}
 .ph-inner{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);align-items:center;gap:0}
@@ -353,7 +351,6 @@ footer{background:var(--ink);padding:56px 0 30px}
 @keyframes phZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 @keyframes phUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.ph-img,.ph-img img,.ph-card,.ph-left .ph-h1,.ph-left .ph-sub,.ph-left .ph-cta{animation:none}}
-
 
 /* ── 도입부 v2: 제목 줄 단위 등장 + 밑줄 그리기. 사진 없는 페이지(.ph-text)는 글자 전용 ── */
 .ph-h1 .hl{display:block;opacity:0;transform:translateY(24px);filter:blur(6px);animation:phLineUp .9s var(--ease-out) both}
@@ -406,7 +403,6 @@ footer{background:var(--ink);padding:56px 0 30px}
     </div>
     <div class="biz-right">
       <div class="br-head">검토 포인트</div>
-      <!-- TODO: 수익률/회수기간 범위 실데이터 입력 -->
       <div class="biz-metrics"><div class="bm"><div class="bm-val">kWh당 180원대</div><div class="bm-label">자가소비로 회피하는 소매요금 수준</div></div><div class="bm"><div class="bm-val">20년</div><div class="bm-label">태양광 모듈 표준 보증기간</div></div></div>
       <div class="biz-caution"><b>주의:</b> 절감률은 요금제·사용 패턴·일사량에 따라 현장마다 다릅니다. 위 수치는 참고용이며, 정확한 수치는 현장 분석 후 제공합니다.</div>
     </div>
@@ -420,7 +416,6 @@ footer{background:var(--ink);padding:56px 0 30px}
     </div>
     <div class="biz-right">
       <div class="br-head">검토 포인트</div>
-      <!-- TODO: 수익률/회수기간 범위 실데이터 입력 -->
       <div class="biz-metrics"><div class="bm"><div class="bm-val">대규모</div><div class="bm-label">평지붕 구조로 설치 효율 우수</div></div><div class="bm"><div class="bm-val">RE100</div><div class="bm-label">납품사 요건 충족 수단</div></div></div>
       <div class="biz-caution"><b>주의:</b> 자가소비율이 낮으면 판매 수익 모델이 더 적합할 수 있습니다. 사용 패턴 분석 후 최적 구조를 제안합니다.</div>
     </div>
@@ -434,7 +429,6 @@ footer{background:var(--ink);padding:56px 0 30px}
     </div>
     <div class="biz-right">
       <div class="br-head">검토 포인트</div>
-      <!-- TODO: 수익률/회수기간 범위 실데이터 입력 -->
       <div class="biz-metrics"><div class="bm"><div class="bm-val">SMP+REC</div><div class="bm-label">발전 판매 수익 구조</div></div><div class="bm"><div class="bm-val">20년</div><div class="bm-label">장기 안정 수익 기간</div></div></div>
       <div class="biz-caution"><b>주의:</b> 계통 접속 대기·인허가 지연이 발생할 수 있습니다. 현장 사전 검토 없이 사업성을 단정하기 어렵습니다.</div>
     </div>
@@ -448,7 +442,6 @@ footer{background:var(--ink);padding:56px 0 30px}
     </div>
     <div class="biz-right">
       <div class="br-head">검토 포인트</div>
-      <!-- TODO: 수익률/회수기간 범위 실데이터 입력 -->
       <div class="biz-metrics"><div class="bm"><div class="bm-val">3가지</div><div class="bm-label">자가소비·임대·판매 선택 가능</div></div><div class="bm"><div class="bm-val">초기 비용 0</div><div class="bm-label">지붕 임대 방식 선택 시</div></div></div>
       <div class="biz-caution"><b>주의:</b> 임대 방식은 임대료 조건과 계약 기간을 꼼꼼히 확인하셔야 합니다. 방식별 장단점을 비교해 드립니다.</div>
     </div>
@@ -462,7 +455,6 @@ footer{background:var(--ink);padding:56px 0 30px}
     </div>
     <div class="biz-right">
       <div class="br-head">검토 포인트</div>
-      <!-- TODO: 수익률/회수기간 범위 실데이터 입력 -->
       <div class="biz-metrics"><div class="bm"><div class="bm-val">발전+충전</div><div class="bm-label">이중 절감 구조</div></div><div class="bm"><div class="bm-val">보조금 연계</div><div class="bm-label">전기차 충전 인프라 지원 활용</div></div></div>
       <div class="biz-caution"><b>주의:</b> 전기차 전환 계획과 충전 수요에 따라 시스템 설계가 크게 달라집니다. 운행 패턴 분석이 선행돼야 합니다.</div>
     </div>
@@ -476,7 +468,6 @@ footer{background:var(--ink);padding:56px 0 30px}
     </div>
     <div class="biz-right">
       <div class="br-head">검토 포인트</div>
-      <!-- TODO: 수익률/회수기간 범위 실데이터 입력 -->
       <div class="biz-metrics"><div class="bm"><div class="bm-val">월 20~30%</div><div class="bm-label">전기료 절감 범위 (현장별 상이)</div></div><div class="bm"><div class="bm-val">기본요금+단가</div><div class="bm-label">동시 절감 구조</div></div><div class="bm"><div class="bm-val">안전관리 해소</div><div class="bm-label">변압기 소유 한전 이관</div></div></div>
       <div class="biz-caution"><b>주의:</b> 저압 전환은 1사업자당 500kW까지 제한됩니다. 실제 피크가 500kW를 초과하면 전환이 불가합니다. 반드시 사전 분석이 필요합니다.</div>
     </div>
@@ -513,7 +504,7 @@ footer{background:var(--ink);padding:56px 0 30px}
     </div>
     <div class="foot-bottom">
       <span>© 2026 주식회사 에스알</span>
-      <span><a href="privacy.html">개인정보처리방침</a> · <a href="#">이용약관</a></span>
+      <span><a href="privacy.html">개인정보처리방침</a></span>
     </div>
   </div>
 </footer>

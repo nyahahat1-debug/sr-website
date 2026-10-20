@@ -131,7 +131,6 @@ footer{background:var(--slate);color:var(--muted-dk);padding:52px 0 36px;font-si
 .map-frame .root_daum_roughmap{width:100%!important}
 @media(max-width:960px){.contact-grid{grid-template-columns:1fr;gap:36px}.form-grid-2{grid-template-columns:1fr}}
 
-
 /* ── 모바일 네비게이션 (햄버거 메뉴) ───────────────────────── */
 .nav-toggle{display:none;appearance:none;-webkit-appearance:none;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:42px;height:42px;padding:0;flex:none;background:var(--white);border:1px solid var(--line);border-radius:999px;cursor:pointer;transition:border-color .18s ease,box-shadow .18s ease}
 .nav-toggle span{display:block;width:17px;height:2px;background:var(--ink);border-radius:2px;transition:transform .25s cubic-bezier(.2,.7,.2,1),opacity .18s ease}
@@ -327,7 +326,6 @@ footer{background:var(--ink);padding:56px 0 30px}
 .map-label{font-family:var(--sans);letter-spacing:0;text-transform:none;font-size:12px;color:var(--muted)}
 .form-inner h3{font-size:19px}
 
-
 /* ── 페이지 도입부: 사진이 오른쪽에서 열리고 제목이 사진 위로 겹친다 (현장 상세와 같은 동작) ── */
 .page-hero{padding:clamp(24px,4vw,44px) 0 clamp(40px,6vw,64px);overflow:hidden}
 .ph-inner{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);align-items:center;gap:0}
@@ -354,7 +352,6 @@ footer{background:var(--ink);padding:56px 0 30px}
 @keyframes phUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.ph-img,.ph-img img,.ph-card,.ph-left .ph-h1,.ph-left .ph-sub,.ph-left .ph-cta{animation:none}}
 
-
 /* ── 도입부 v2: 제목 줄 단위 등장 + 밑줄 그리기. 사진 없는 페이지(.ph-text)는 글자 전용 ── */
 .ph-h1 .hl{display:block;opacity:0;transform:translateY(24px);filter:blur(6px);animation:phLineUp .9s var(--ease-out) both}
 .ph-h1 .hl:nth-child(1){animation-delay:.25s}.ph-h1 .hl:nth-child(2){animation-delay:.42s}.ph-h1 .hl:nth-child(3){animation-delay:.59s}.ph-h1 .hl:nth-child(4){animation-delay:.76s}
@@ -370,7 +367,6 @@ footer{background:var(--ink);padding:56px 0 30px}
 @keyframes phLine{from{background-size:0% .08em}to{background-size:100% .08em}}
 @media(max-width:700px){.ph-text .ph-h1{font-size:clamp(32px,9vw,44px)}}
 @media(prefers-reduced-motion:reduce){.ph-h1 .hl{animation:none;opacity:1;transform:none;filter:none}.ph-h1 em{animation:none;background-size:100% .08em}}
-
 
 /* ── 지도 iframe(sandbox) · 개인정보 동의 ── */
 .map-frame iframe.map-embed{display:block;width:100%;height:240px;border:0;background:var(--paper)}
@@ -498,7 +494,7 @@ footer{background:var(--ink);padding:56px 0 30px}
     </div>
     <div class="foot-bottom">
       <span>© 2026 주식회사 에스알</span>
-      <span><a href="privacy.html">개인정보처리방침</a> · <a href="#">이용약관</a></span>
+      <span><a href="privacy.html">개인정보처리방침</a></span>
     </div>
   </div>
 </footer>

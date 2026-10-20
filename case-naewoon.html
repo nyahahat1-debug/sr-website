@@ -143,7 +143,6 @@ footer{background:var(--slate);color:var(--muted-dk);padding:52px 0 36px;font-si
 @media(max-width:960px){.detail-hero .wrap{grid-template-columns:1fr;gap:28px}.detail-grid{grid-template-columns:1fr}.result-card{position:static}.before-after{grid-template-columns:1fr}}
 @media(max-width:600px){.photo-grid{grid-template-columns:1fr}.dh-img{height:220px}.spec-row{flex-direction:column;gap:4px;align-items:flex-start}.spec-v{text-align:left}}
 
-
 /* card hover lift */
 @media(hover:hover) and (prefers-reduced-motion:no-preference){
 .photo-box,.result-card{transition:transform .22s ease,box-shadow .22s ease}
@@ -353,7 +352,6 @@ footer{background:var(--ink);padding:56px 0 30px}
 .ba-label{color:var(--muted)}
 .rc-head{font-size:15px}
 
-
 /* ── 현장 상세 도입부: 사진이 오른쪽에서 열리고 제목이 사진 위로 겹친다 (jitter 'Mountains: Animated Website') ── */
 .detail-hero{padding:clamp(24px,4vw,44px) 0 clamp(40px,6vw,72px);overflow:hidden}
 .dh-img{position:relative;height:auto;aspect-ratio:4/3;min-height:300px;border:none;border-radius:var(--r);overflow:hidden;box-shadow:0 44px 90px -44px rgba(13,27,42,.6);animation:dhReveal 1.15s cubic-bezier(.77,0,.175,1) .1s both}
@@ -404,7 +402,7 @@ footer{background:var(--ink);padding:56px 0 30px}
       </div>
     </div>
     <div class="dh-img sph">
-      <div class="sph-fallback"><span class="sph-label">준공 현장 대표 사진</span><span class="sph-file">assets/images/naewoon-hero.webp</span></div>
+      <div class="sph-fallback"><span class="sph-label">준공 현장 대표 사진</span></div>
       <img src="assets/images/naewoon-hero.webp" alt="노지 태양광 발전소 항공 전경" data-fallback="jpg">
     </div>
   </div>
@@ -424,19 +422,19 @@ footer{background:var(--ink);padding:56px 0 30px}
         <p>부지 정지(整地) 후 기초·구조물·모듈·전기 순으로 시공했으며, 계절에 따라 모듈 각도를 조절할 수 있는 가변형 구조물을 적용해 2022년 1월 준공했습니다.</p>
         <div class="photo-grid reveal stagger">
           <div class="photo-box sph">
-            <div class="sph-fallback"><span class="sph-label">가변형 구조물 상세</span><span class="sph-file">assets/images/naewoon-01.webp</span></div>
+            <div class="sph-fallback"><span class="sph-label">가변형 구조물 상세</span></div>
             <img src="assets/images/naewoon-01.webp" alt="가변형 각도조절 구조물" data-fallback="jpg">
           </div>
           <div class="photo-box sph">
-            <div class="sph-fallback"><span class="sph-label">지상 설치 어레이</span><span class="sph-file">assets/images/naewoon-02.webp</span></div>
+            <div class="sph-fallback"><span class="sph-label">지상 설치 어레이</span></div>
             <img src="assets/images/naewoon-02.webp" alt="노지 태양광 어레이" data-fallback="jpg">
           </div>
           <div class="photo-box sph">
-            <div class="sph-fallback"><span class="sph-label">가변형 구조물 열</span><span class="sph-file">assets/images/naewoon-03.webp</span></div>
+            <div class="sph-fallback"><span class="sph-label">가변형 구조물 열</span></div>
             <img src="assets/images/naewoon-03.webp" alt="가변형 각도조절 구조물 배열" data-fallback="jpg">
           </div>
           <div class="photo-box sph">
-            <div class="sph-fallback"><span class="sph-label">현대 인버터</span><span class="sph-file">assets/images/naewoon-04.webp</span></div>
+            <div class="sph-fallback"><span class="sph-label">현대 인버터</span></div>
             <img src="assets/images/naewoon-04.webp" alt="현대 인버터 설치" data-fallback="jpg">
           </div>
         </div>
@@ -465,11 +463,9 @@ footer{background:var(--ink);padding:56px 0 30px}
           </div>
         </div>
         <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-top:10px">* 발전수익은 SMP·REC 가격과 일사량에 따라 달라질 수 있습니다. 운영 실측 발전량·수익은 확정 후 게시합니다.</p>
-        <!-- TODO: 운영 실측 발전량·수익 데이터 입력 -->
         <h2>준공 후 관리</h2>
         <p>준공 후에는 정기 점검과 원격 모니터링으로 발전 상태를 확인하고, 이상 신호가 확인되면 정해진 절차에 따라 점검·조치를 진행합니다. 점검 주기와 대응 범위는 계약 조건에 따라 정해집니다.</p>
         <p>이 현장은 현대 모니터링 시스템으로 발전량과 설비 상태를 확인하며 관리하고, 계절이 바뀔 때 모듈 각도를 조정해 발전 효율을 유지합니다.</p>
-        <!-- TODO: 정기 점검 주기·현장 방문 조건 확정 시 추가 -->
       </div>
       <div class="result-card reveal">
         <div class="rc-head">성과 요약</div>
@@ -512,7 +508,7 @@ footer{background:var(--ink);padding:56px 0 30px}
     </div>
     <div class="foot-bottom">
       <span>© 2026 주식회사 에스알</span>
-      <span><a href="privacy.html">개인정보처리방침</a> · <a href="#">이용약관</a></span>
+      <span><a href="privacy.html">개인정보처리방침</a></span>
     </div>
   </div>
 </footer>

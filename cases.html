@@ -122,7 +122,6 @@ footer{background:var(--slate);color:var(--muted-dk);padding:52px 0 36px;font-si
 .ccard .sph img{transition:transform .35s ease}
 .ccard:hover .sph img{transform:scale(1.04)}
 
-
 /* card hover lift */
 @media(hover:hover) and (prefers-reduced-motion:no-preference){
 .ccard{transition:transform .22s ease,box-shadow .22s ease}
@@ -331,7 +330,6 @@ footer{background:var(--ink);padding:56px 0 30px}
 .case-tile-s{font-size:12px;color:#9FB6C8;margin-top:6px}
 .case-tile-b{font-size:12px;color:var(--sky3);border:1px solid rgba(144,224,239,.5);border-radius:var(--r-s);padding:3px 9px}
 
-
 /* ── 프로젝트 갤러리: 정사각형 사진 타일이 가운데서 차례로 커지며 나타난다 (jitter 'Animated Square Images') ── */
 .gal{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px 24px}
 .tile{display:block;color:inherit;animation:tileIn .8s var(--ease-out) both;animation-delay:calc(var(--i) * .12s)}
@@ -351,7 +349,6 @@ footer{background:var(--ink);padding:56px 0 30px}
 @keyframes tileIn{from{opacity:0;transform:scale(.55);filter:blur(8px)}to{opacity:1;transform:none;filter:none}}
 @media(max-width:700px){.gal{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 14px}.tile-n{font-size:15px}.tile-m{font-size:12.5px}.case-tile-v{font-size:24px}}
 @media(prefers-reduced-motion:reduce){.tile{animation:none}}
-
 
 /* ── 페이지 도입부: 사진이 오른쪽에서 열리고 제목이 사진 위로 겹친다 (현장 상세와 같은 동작) ── */
 .page-hero{padding:clamp(24px,4vw,44px) 0 clamp(40px,6vw,64px);overflow:hidden}
@@ -378,7 +375,6 @@ footer{background:var(--ink);padding:56px 0 30px}
 @keyframes phZoom{from{transform:scale(1.12)}to{transform:scale(1)}}
 @keyframes phUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.ph-img,.ph-img img,.ph-card,.ph-left .ph-h1,.ph-left .ph-sub,.ph-left .ph-cta{animation:none}}
-
 
 /* ── 도입부 v2: 제목 줄 단위 등장 + 밑줄 그리기. 사진 없는 페이지(.ph-text)는 글자 전용 ── */
 .ph-h1 .hl{display:block;opacity:0;transform:translateY(24px);filter:blur(6px);animation:phLineUp .9s var(--ease-out) both}
@@ -415,26 +411,15 @@ footer{background:var(--ink);padding:56px 0 30px}
 
 <section class="section">
   <div class="wrap">
-    <!-- TODO: 실적 수치 확인 필요 — SR 단독 실적과 네트워크 경험 구분 표기 -->
-    <template data-v2="실적 수치 확정 후 template 태그를 제거하면 표시됩니다">
-    <div class="stat-row reveal">
-      <div class="stat-item"><div class="stat-num">○○<span style="font-size:18px">MW</span></div><div class="stat-label">누적 시공 용량</div></div>
-      <div class="stat-item"><div class="stat-num">○○<span style="font-size:18px">건</span></div><div class="stat-label">완공 실적</div></div>
-      <div class="stat-item"><div class="stat-num">○○<span style="font-size:18px">개</span></div><div class="stat-label">업종·유형</div></div>
-      <div class="stat-item"><div class="stat-num">○○<span style="font-size:18px">년</span></div><div class="stat-label">최장 운영 현장</div></div>
-    </div>
-    <div class="stat-note reveal">* 실적 수치 확인 중 — 확정 후 게시</div>
-    </template>
 
     <div class="filter-bar reveal" role="group" aria-label="프로젝트 분류">
       <button class="filter-btn on" type="button" data-filter="all" aria-pressed="true">전체</button>
       <button class="filter-btn" type="button" data-filter="self" aria-pressed="false">자가소비</button>
       <button class="filter-btn" type="button" data-filter="sell" aria-pressed="false">발전판매</button>
       <button class="filter-btn" type="button" data-filter="rational" aria-pressed="false">수전합리화</button>
-      <button class="filter-btn" type="button" data-filter="progress" aria-pressed="false">진행 중</button>
+      
     </div>
 
-    <!-- TODO: 사례 실데이터 입력 (고객사명/지역/성과 수치) -->
     <div class="gal" id="gal">
 <a href="case-detail.html" class="tile" data-cat="self">
   <div class="tile-ph"><img src="assets/images/case-01.webp" alt="효성첨단소재 전주공장 지붕 태양광" loading="lazy" data-fallback="jpg"></div>
@@ -455,12 +440,7 @@ footer{background:var(--ink);padding:56px 0 30px}
 <a href="case-suejeon.html" class="tile" data-cat="rational">
   <div class="tile-ph tile-dark"><div class="case-tile-k">연간 예상 절감</div><div class="case-tile-v">약 4,539<small>만원</small></div><div class="case-tile-s">고압 → 저압 전환</div></div>
   <div class="tile-cap"><div class="tile-k">수전합리화 · 전북 완주 · 분석 완료</div><div class="tile-n">수전합리화 컨설팅</div><div class="tile-m">산업용(을) 고압A · 시공 예정</div></div>
-</a>
-<div class="tile tile-soon" data-cat="progress">
-  <div class="tile-ph tile-dark"><div class="case-tile-b">진행 중</div><div class="case-tile-s" style="margin-top:10px">인허가 진행 중 · 준공 후 공개</div></div>
-  <div class="tile-cap"><div class="tile-k">운수·차고지</div><div class="tile-n">운수·차고지 태양광</div><div class="tile-m">준공 후 상세 공개 예정</div></div>
-</div>
-</div>
+</a></div>
   </div>
 </section>
 <section class="cta-strip">
@@ -490,7 +470,7 @@ footer{background:var(--ink);padding:56px 0 30px}
     </div>
     <div class="foot-bottom">
       <span>© 2026 주식회사 에스알</span>
-      <span><a href="privacy.html">개인정보처리방침</a> · <a href="#">이용약관</a></span>
+      <span><a href="privacy.html">개인정보처리방침</a></span>
     </div>
   </div>
 </footer>

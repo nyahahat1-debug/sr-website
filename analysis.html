@@ -665,7 +665,6 @@ footer{background:var(--ink);padding:56px 0 30px}
 .cta-or-btns{justify-content:flex-start}
 @media(max-width:860px){.cta-section .wrap{grid-template-columns:1fr}.form-wrap{grid-column:1;grid-row:auto}}
 
-
 /* ── 페이지 도입부: 사진이 오른쪽에서 열리고 제목이 사진 위로 겹친다 (현장 상세와 같은 동작) ── */
 .page-hero{padding:clamp(24px,4vw,44px) 0 clamp(40px,6vw,64px);overflow:hidden}
 .ph-inner{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);align-items:center;gap:0}
@@ -692,7 +691,6 @@ footer{background:var(--ink);padding:56px 0 30px}
 @keyframes phUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.ph-img,.ph-img img,.ph-card,.ph-left .ph-h1,.ph-left .ph-sub,.ph-left .ph-cta{animation:none}}
 
-
 /* ── 전력 시세 섹션 ── */
 .market-section{padding:clamp(56px,7vw,96px) 0;background:var(--white);border-top:1px solid var(--line)}
 .market-section .sec-h2{font-size:clamp(26px,3vw,38px)}
@@ -700,7 +698,6 @@ footer{background:var(--ink);padding:56px 0 30px}
 .market-section .mk-hd p{margin-top:0;max-width:none;padding-bottom:.3em}
 @media(max-width:860px){.market-section .mk-hd{grid-template-columns:1fr}.market-section .mk-hd p{padding-bottom:0}}
 .ec-market .ec-modes-s{flex-wrap:wrap}
-
 
 /* ── 도입부 v2: 제목 줄 단위 등장 + 밑줄 그리기. 사진 없는 페이지(.ph-text)는 글자 전용 ── */
 .ph-h1 .hl{display:block;opacity:0;transform:translateY(24px);filter:blur(6px);animation:phLineUp .9s var(--ease-out) both}
@@ -718,6 +715,32 @@ footer{background:var(--ink);padding:56px 0 30px}
 @media(max-width:700px){.ph-text .ph-h1{font-size:clamp(32px,9vw,44px)}}
 @media(prefers-reduced-motion:reduce){.ph-h1 .hl{animation:none;opacity:1;transform:none;filter:none}.ph-h1 em{animation:none;background-size:100% .08em}}
 
+/* ── CTA 스트립 (business.html 과 동일) ── */
+.cta-strip{background:var(--ink);color:#fff;padding:clamp(72px,9vw,110px) 0;text-align:center;position:relative;overflow:hidden}
+.cta-strip .wrap{position:relative;z-index:1}
+.cta-strip h2{font-size:clamp(26px,3.8vw,44px);font-weight:800;letter-spacing:-.03em;line-height:1.2}
+.cta-strip p{font-size:15px;color:var(--muted-dk);margin:16px auto 0;max-width:480px;line-height:1.7}
+.cta-btns{display:flex;gap:11px;justify-content:center;flex-wrap:wrap;margin-top:30px}
+.cta-btns .btn{padding:13px 24px;font-size:14.5px}
+.cta-note{font-family:var(--mono);font-size:11.5px;color:var(--muted-dk);margin-top:22px}
+.fs-k,.trust-note,.cap-note,.cta-note,.rfoot,.fs-link a,.mc-link a,.cp-hd a,.ctag,.mc-tag,.rclabel,.dx-bverdict{
+.trust-note,.cap-note,.cta-note{font-size:11.5px}
+.sec-lead,.ph-sub,.fs-hd p,.methods-hd p,.scope-hd p,.dx-hd p,.ab-hd p,.cta-section p,.cta-strip p,.why-left p,.proc-intro p,.sample-intro p,.cond-left p,.cg-left p{font-size:16px;line-height:1.7}
+.cta-strip,.cta-section{text-align:left;padding:clamp(64px,8vw,104px) 0}
+.cta-strip::before,.cta-section::before{content:none}
+.cta-strip .wrap,.cta-section .wrap{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:18px 56px;align-items:start}
+.cta-strip h2,.cta-section h2{grid-column:1;font-size:clamp(28px,3.6vw,46px);color:var(--white)}
+.cta-strip p,.cta-section p{grid-column:1;margin:0;max-width:520px;color:#B9CEDD}
+.cta-btns{grid-column:1;justify-content:flex-start;margin-top:6px}
+.cta-btns .btn{padding:13px 22px;font-size:14.5px}
+.cta-note{grid-column:1;margin-top:2px;font-size:12.5px;color:#9FB6C8}
+.cta-tel{grid-column:2;grid-row:1/span 4;justify-self:stretch;align-self:stretch;display:flex;flex-direction:column;justify-content:center;gap:6px;border-left:1px solid var(--line-dk);padding-left:40px}
+.cta-tel-k{font-size:13px;color:#B9CEDD}
+.cta-tel-n{font-family:var(--mono);font-size:clamp(28px,3.2vw,40px);font-weight:600;letter-spacing:-.02em;color:var(--white);font-variant-numeric:tabular-nums;line-height:1.1}
+.cta-tel-n:hover{text-decoration:underline;text-underline-offset:6px;text-decoration-color:var(--sun);text-decoration-thickness:2px}
+.cta-tel-s{font-size:13px;color:#9FB6C8}
+@media(max-width:860px){.cta-strip .wrap,.cta-section .wrap{grid-template-columns:1fr}.cta-tel{grid-column:1;grid-row:auto;border-left:none;padding-left:0;border-top:1px solid var(--line-dk);padding-top:22px;margin-top:10px}}
+.cta-strip :focus-visible,.cta-section :focus-visible,footer :focus-visible,.dx-result :focus-visible,.stage :focus-visible{outline-color:var(--sun)}
 </style>
 <script src="assets/js/site.js"></script>
 </head>
@@ -733,7 +756,7 @@ footer{background:var(--ink);padding:56px 0 30px}
       <a href="about.html">회사소개</a>
       <a href="contact.html">문의하기</a>
     </nav>
-    <a class="btn btn-amber" href="#apply">무료 사업성 진단 신청</a>
+    <a class="btn btn-amber" href="contact.html">무료 사업성 진단 신청</a>
     <button class="nav-toggle" type="button" aria-label="메뉴 열기" aria-expanded="false" aria-controls="navLinks"><span></span><span></span><span></span></button>
   </div>
 </header>
@@ -746,7 +769,7 @@ footer{background:var(--ink);padding:56px 0 30px}
         <h1 class="ph-h1">견적보다 먼저,<br><em>사업성부터<br>따져봅니다.</em></h1>
         <p class="ph-sub">에스알은 시공 제안 전에 일사량, 설치 면적, 예상 발전량, 투자비, 회수기간을 분석해 리포트로 드립니다. 숫자가 나오면 그때 시공 이야기를 합니다.</p>
         <div class="ph-cta">
-          <a class="btn btn-amber" href="#apply">무료 사업성 진단 신청</a>
+          <a class="btn btn-amber" href="contact.html">무료 사업성 진단 신청</a>
           <a class="btn btn-ghost" href="#process-detail">분석 과정 보기</a>
         </div>
       </div>
@@ -977,105 +1000,6 @@ footer{background:var(--ink);padding:56px 0 30px}
   </div>
 </section>
 
-<!-- SAMPLE REPORT -->
-<section class="sample-section" id="sample">
-  <div class="wrap">
-    <div class="sample-intro reveal">
-      <h2>실제로 이런 리포트를 받게 됩니다.</h2>
-      <p>분석 완료 후 아래와 같은 형태로 결과를 정리해 드립니다. 숫자 하나하나에 출처와 산출 조건이 붙습니다.</p>
-    </div>
-    <div class="report-mock reveal">
-      <div class="rm-header">
-        <div class="rm-title-group">
-          <div class="rm-label">주식회사 에스알 · 경제성 분석</div>
-          <div class="rm-title">경제성 분석 리포트 <span class="rm-badge">예시 데이터</span></div>
-        </div>
-        <div class="rm-meta">
-          <div class="rm-co">제조공장 500kW급 · 예시 데이터</div>
-          <div class="rm-date">분석 기준 : 2026.06</div>
-        </div>
-      </div>
-      <div class="rm-body">
-        <div class="rm-col">
-          <div class="rm-col-label">현장 개요</div>
-          <div class="rm-rows">
-            <div class="rm-row"><span class="rk">설치 가능 면적</span><span class="rv"><span class="cu" data-to="3200" data-dec="0">0</span><span class="u">㎡</span></span></div>
-            <div class="rm-row"><span class="rk">설치 가능 용량</span><span class="rv"><span class="cu" data-to="498" data-dec="0">0</span><span class="u">kW</span></span></div>
-            <div class="rm-row"><span class="rk">지붕 방위 / 경사</span><span class="rv">남향 12° <span class="u">편차</span></span></div>
-            <div class="rm-row"><span class="rk">계통 연계</span><span class="rv">가능</span></div>
-          </div>
-        </div>
-        <div class="rm-col">
-          <div class="rm-col-label">수익 구조 (연간 기준)</div>
-          <div class="rm-rows">
-            <div class="rm-row"><span class="rk">연간 예상 발전량</span><span class="rv"><span class="cu" data-to="618" data-dec="0">0</span><span class="u">MWh</span></span></div>
-            <div class="rm-row"><span class="rk">전기료 절감액</span><span class="rv hi"><span class="qual">약</span> <span class="cu" data-to="1100" data-dec="0">0</span><span class="u">만 원</span></span></div>
-            <div class="rm-row"><span class="rk">O&M 비용</span><span class="rv"><span class="qual">약</span> <span class="cu" data-to="80" data-dec="0">0</span><span class="u">만 원</span></span></div>
-            <div class="rm-row"><span class="rk">연간 순수익</span><span class="rv hi"><span class="qual">약</span> <span class="cu" data-to="1020" data-dec="0">0</span><span class="u">만 원</span></span></div>
-          </div>
-        </div>
-      </div>
-      <div class="rm-chart-area">
-        <div class="rm-chart-label">월별 예상 발전량 (MWh)</div>
-        <div class="rm-bars">
-          <div class="rm-bar" data-h="42"></div>
-          <div class="rm-bar" data-h="55"></div>
-          <div class="rm-bar" data-h="69"></div>
-          <div class="rm-bar" data-h="83"></div>
-          <div class="rm-bar" data-h="93"></div>
-          <div class="rm-bar" data-h="88"></div>
-          <div class="rm-bar" data-h="95"></div>
-          <div class="rm-bar" data-h="91"></div>
-          <div class="rm-bar" data-h="77"></div>
-          <div class="rm-bar" data-h="61"></div>
-          <div class="rm-bar" data-h="46"></div>
-          <div class="rm-bar" data-h="38"></div>
-        </div>
-      </div>
-      <div class="rm-detail">
-        <div class="rm-col">
-          <div class="rm-col-label">적용 단가 · 가정</div>
-          <!-- TODO: 분석 기준 단가 입력 -->
-          <div class="rm-rows">
-            <div class="rm-row"><span class="rk">전력단가 적용 기준</span><span class="rv ph">계약 요금제의 시간대별 단가</span></div>
-            <div class="rm-row"><span class="rk">SMP 기준</span><span class="rv ph">분석 시점 월평균 SMP</span></div>
-            <div class="rm-row"><span class="rk">REC 가중치</span><span class="rv ph">설치 유형별 가중치 적용</span></div>
-            <div class="rm-row"><span class="rk">금리·금융 조건</span><span class="rv ph">고객 대출 조건 반영</span></div>
-            <div class="rm-row"><span class="rk">O&amp;M 단가</span><span class="rv ph">설비 규모별 연간 단가</span></div>
-          </div>
-        </div>
-        <div class="rm-col">
-          <div class="rm-col-label">주요 위험요인</div>
-          <ul class="rm-risks">
-            <li><b>일사량 변동.</b> 기상 조건에 따라 발전량이 해마다 달라질 수 있습니다.</li>
-            <li><b>전기요금 개편.</b> 요금 체계가 바뀌면 절감액 산정 기준이 달라질 수 있습니다.</li>
-            <li><b>계통연계 지연.</b> 지역 계통 여건에 따라 연계 일정이 늦어질 수 있습니다.</li>
-          </ul>
-        </div>
-      </div>
-      <div class="rm-payback">
-        <div class="rpb-item"><div class="rpb-val"><span class="cu" data-to="6.2" data-dec="1" data-suffix="억">0</span></div><div class="rpb-label">총 투자비</div></div>
-        <div class="rpb-divider"></div>
-        <div class="rpb-item"><div class="rpb-val"><span class="cu" data-to="6.1" data-dec="1">0</span><span style="font-size:14px">년</span></div><div class="rpb-label">예상 회수기간</div></div>
-        <div class="rpb-divider"></div>
-        <div class="rpb-item"><div class="rpb-val"><span class="cu" data-to="13.9" data-dec="1" data-suffix="억">0</span></div><div class="rpb-label">20년 누적 수익 추정</div></div>
-        <div class="rpb-divider"></div>
-        <div class="rpb-item" style="text-align:left;max-width:220px">
-          <div class="rm-verdict-k">결론</div>
-          <div style="font-size:14px;font-weight:700;color:var(--ink)">투자 권장</div>
-          <div style="font-size:12.5px;color:var(--muted);margin-top:2px">현 요금제 및 사용 패턴 기준 사업성 충분</div>
-        </div>
-      </div>
-      <div class="rm-footer">
-        <!-- TODO: 분석 담당자·검토 상태 입력 -->
-        <div class="rm-footer-meta">분석 기준일 : 2026.06 · 예시 데이터</div>
-        * 본 카드의 모든 수치는 예시 데이터입니다. 실제 수치는 현장 일사량·면적·요금제·계통 조건에 따라 달라집니다. 본 분석은 투자 결정을 보장하지 않으며, 모든 결과는 참고용으로 현장조사 후 확정됩니다.
-      </div>
-    </div>
-    <p class="sample-note reveal">리포트는 신청 후 현장·자료 검토를 거쳐 영업일 기준 2~3일 이내에 제공됩니다. 분석 결과에 이견이 있거나 추가 확인이 필요한 항목이 있으면 담당자와 직접 협의할 수 있습니다.</p>
-  </div>
-</section>
-
 <!-- CONDITIONS (honest) -->
 <section class="cond-section" id="conditions">
   <div class="wrap">
@@ -1167,75 +1091,14 @@ footer{background:var(--ink);padding:56px 0 30px}
   </div>
 </section>
 
-<section class="cta-section" id="apply">
-  <div class="wrap">
-    <h2 class="reveal">주소와 연락처만 남겨주세요.<br>나머지는 저희가 따져봅니다.</h2>
-    <p class="reveal">신청한다고 시공이 확정되지 않습니다. 분석 결과를 보고 결정하시면 됩니다.</p>
-    <div class="form-wrap reveal">
-      <form id="analysisForm">
-        <input type="hidden" name="access_key" value="36a21d93-a00a-43d4-9cc9-55069646b69b">
-        <input type="hidden" name="subject" value="[에스알 홈페이지] 무료 경제성 분석 신청">
-        <input type="hidden" name="from_name" value="에스알 홈페이지 문의">
-        <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off">
-        <div class="form-grid">
-          <div class="form-row">
-            <label for="fld-1">담당자 성함 *</label>
-            <input id="fld-1" autocomplete="name" type="text" name="담당자" placeholder="홍길동" required>
-          </div>
-          <div class="form-row">
-            <label for="fld-2">연락처 *</label>
-            <input id="fld-2" autocomplete="tel" type="tel" name="연락처" placeholder="010-0000-0000" required>
-          </div>
-        </div>
-        <div class="form-row">
-          <label for="fld-3">사업장 주소 (또는 지역) *</label>
-          <input id="fld-3" autocomplete="off" type="text" name="사업장 주소" placeholder="예: 전북 전주시 (대략적인 위치도 가능)" required>
-        </div>
-        <div class="form-grid">
-          <div class="form-row">
-            <label for="fld-4">사업장 유형</label>
-            <select id="fld-4" name="사업장 유형">
-              <option value="">선택해 주세요</option>
-              <option>공장</option>
-              <option>물류센터·창고</option>
-              <option>건물·상업시설</option>
-              <option>유휴 토지</option>
-              <option>운수·차고지</option>
-              <option>기타</option>
-            </select>
-          </div>
-          <div class="form-row">
-            <label for="fld-5">월 평균 전기요금 (대략)</label>
-            <select id="fld-5" name="월 전기요금">
-              <option value="">선택해 주세요</option>
-              <option>100만원 미만</option>
-              <option>100~300만원</option>
-              <option>300~1,000만원</option>
-              <option>1,000만원 이상</option>
-              <option>모름</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <label for="fld-6">추가로 알려주실 내용 (선택)</label>
-          <textarea id="fld-6" autocomplete="off" name="추가 내용" placeholder="지붕 면적, 계약 전력, 관심 있는 방법(자가소비/발전판매/수전합리화) 등 알고 계신 내용을 자유롭게 적어주세요."></textarea>
-        </div>
-        <button type="submit" class="btn btn-amber form-submit">무료 사업성 진단 신청</button>
-        <p class="form-notice">영업일 기준 2일 이내 연락드립니다 · 개인정보는 분석 목적으로만 사용됩니다<br>분석 결과는 참고용이며, 최종 수치는 현장조사 후 확정됩니다.</p>
-      </form>
-      <div class="form-ok" id="formOk" hidden>
-        <div class="form-ok-icon">✓</div>
-        <h4>신청이 접수되었습니다</h4>
-        <p>영업일 기준 2일 이내에 담당자가 연락드리겠습니다.<br>급하신 경우 063-544-8142로 전화 주세요.</p>
-      </div>
+<section class="cta-strip" id="apply">
+  <div class="wrap reveal">
+    <h2>주소와 연락처만 남겨주세요.</h2><p>신청한다고 시공이 확정되지 않습니다. 분석 결과를 보고 결정하시면 됩니다.</p>
+    <div class="cta-btns">
+      <a href="contact.html" class="btn btn-amber">무료 사업성 진단 신청</a>
     </div>
-    <div class="cta-or reveal">
-      <p>또는 바로 연락하세요</p>
-      <div class="cta-or-btns">
-        <a class="btn btn-ghost-dk" href="tel:0635448142">전화 063-544-8142</a>
-        <a class="btn btn-ghost-dk" href="mailto:hbok1234@naver.com">이메일 보내기</a>
-      </div>
-    </div>
+    <div class="cta-note">영업일 기준 2일 이내 연락드립니다.</div>
+    <div class="cta-tel"><span class="cta-tel-k">전화로 바로 묻기</span><a class="cta-tel-n" href="tel:0635448142">063-544-8142</a><span class="cta-tel-s">평일 09:00–18:00 (주말·공휴일 제외)</span></div>
   </div>
 </section>
 
@@ -1258,7 +1121,7 @@ footer{background:var(--ink);padding:56px 0 30px}
     </div>
     <div class="foot-bottom">
       <span>© 2026 주식회사 에스알</span>
-      <span><a href="privacy.html">개인정보처리방침</a> · <a href="#">이용약관</a></span>
+      <span><a href="privacy.html">개인정보처리방침</a></span>
     </div>
   </div>
 </footer>

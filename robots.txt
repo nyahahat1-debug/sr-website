@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
-Disallow: /market-preview.html
 Disallow: /map-embed.html
+Sitemap: https://nyahahat1-debug.github.io/sr-website/sitemap.xml
