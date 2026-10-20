@@ -23,7 +23,7 @@ class Client:
         self.uid, self.pw, self.calls = uid, pw, 0
         self.jar = http.cookiejar.CookieJar()
         self.op = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.jar))
-        self.hdr = {'User-Agent': 'Mozilla/5.0 (sr-website hyosung generation collector)', 'Referer': BASE + '/imsMain/main.do?cm=M300', 'Origin': BASE}
+        self.hdr = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', 'Accept-Language': 'ko-KR,ko;q=0.9', 'Accept': 'text/html,application/json;q=0.9,*/*;q=0.8', 'Referer': BASE + '/imsMain/main.do?cm=M300', 'Origin': BASE}
 
     def login(self):
         self.op.open(urllib.request.Request(BASE + '/mgt/login/login.do', headers=self.hdr), timeout=30).read()   # 세션 쿠키
