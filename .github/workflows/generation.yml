@@ -39,12 +39,15 @@ jobs:
           echo "### Q.HUB 수집 상태" >> "$GITHUB_STEP_SUMMARY"; cat assets/data/qhub-status.json >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
       - name: 결과 재검증
         run: python tools/security_check.py --ci
-      - name: 변경분 커밋
+      - name: 변경분 커밋 (최신 main 위에 결과 파일만 얹어서 — 다른 실행과 겹쳐도 충돌 없음)
         run: |
           git config user.name "generation-bot"
           git config user.email "generation-bot@users.noreply.github.com"
+          mkdir -p /tmp/out
+          for f in assets/data/generation.json assets/data/hyosung-generation.json assets/data/qhub-status.json; do [ -f "$f" ] && cp "$f" /tmp/out/ || true; done
+          git fetch origin main && git reset --hard origin/main
+          for f in assets/data/generation.json assets/data/hyosung-generation.json assets/data/qhub-status.json; do b=$(basename "$f"); [ -f "/tmp/out/$b" ] && cp "/tmp/out/$b" "$f" || true; done
           git add assets/data/generation.json assets/data/hyosung-generation.json assets/data/qhub-status.json
           if git diff --cached --quiet; then echo "변경 없음"; exit 0; fi
           git commit -m "발전 현황 갱신 $(date -u +'%Y-%m-%d %H:%M UTC')"
-          git pull --rebase origin main
-          git push
+          git push origin HEAD:main

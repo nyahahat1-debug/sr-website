@@ -34,12 +34,15 @@ jobs:
         run: python tools/carbon_collect.py --out assets/data/carbon.json || echo "배출권 시세 수집 실패 — 이전 파일 유지"
       - name: 결과 재검증
         run: python tools/security_check.py --ci
-      - name: 변경분 커밋
+      - name: 변경분 커밋 (최신 main 위에 결과 파일만 얹어서 — 다른 실행과 겹쳐도 충돌 없음)
         run: |
           git config user.name "market-bot"
           git config user.email "market-bot@users.noreply.github.com"
+          mkdir -p /tmp/out
+          for f in assets/data/market.json assets/data/carbon.json; do [ -f "$f" ] && cp "$f" /tmp/out/ || true; done
+          git fetch origin main && git reset --hard origin/main
+          for f in assets/data/market.json assets/data/carbon.json; do b=$(basename "$f"); [ -f "/tmp/out/$b" ] && cp "/tmp/out/$b" "$f" || true; done
           git add assets/data/market.json assets/data/carbon.json
           if git diff --cached --quiet; then echo "변경 없음"; exit 0; fi
           git commit -m "시세 갱신 $(date -u +'%Y-%m-%d %H:%M UTC')"
-          git pull --rebase origin main
-          git push
+          git push origin HEAD:main
