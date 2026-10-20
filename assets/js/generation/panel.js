@@ -70,6 +70,31 @@ function sparkline(site, W = 320, H = 88) {
 
 function tile(k, v, unit) { return h('div', { class: 'gn-t' }, h('div', { class: 'gn-k' }, k), h('div', { class: 'gn-v' }, v, h('i', {}, unit))); }
 
+/** generation.json(HI SMART 현장들) + hyosung-generation.json(Q.HUB, 자가소비)을 한 목록으로 합친다. 둘 다 없으면 null */
+export async function loadAllSites(base = 'assets/data/') {
+  const get = u => fetch(base + u, { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null);
+  const [g, hy] = await Promise.all([get('generation.json'), get('hyosung-generation.json')]);
+  const sites = (g && !g.sample && Array.isArray(g.sites)) ? g.sites.slice() : [];
+  const L = hy && hy.live;
+  if (L && (L.todayKwh != null || L.nowKw != null)) {
+    const cur = (hy.months || []).find(m => m.partial) || null, prevM = (hy.months || []).filter(m => !m.partial).slice(-1)[0] || null;
+    sites.unshift({
+      id: 'HYOSUNG', ids: (L.feeds || []).map(f => f.id), name: hy.site || '효성첨단소재 전주공장', portalName: (L.feeds || []).map(f => f.name).join(' + '),
+      page: 'case-detail.html', label: '자가소비 · 제조공장 지붕 · 전북 전주', sido: '전북', sigu: '전주시',
+      capacityKw: hy.capacityKw || hy.portalCapacityKw, portalCapacityKw: hy.portalCapacityKw, nowKw: L.nowKw, todayKwh: L.todayKwh, todayHours: L.todayHours,
+      yesterdayKwh: null, monthKwh: L.monthKwh != null ? L.monthKwh : (cur && cur.kwh), monthHours: L.monthHours, prevMonthKwh: prevM && prevM.kwh, totalKwh: L.yearKwh,
+      inverters: (L.feeds || []).length, running: (L.feeds || []).filter(f => (f.nowKw || 0) > 0 || f.status === 'Normal').length,
+      status: (L.nowKw || 0) > 0 ? 'Run' : 'Standby', comm: 'None', daySeries: L.daySeries || { t: [], kw: [] }, selfUse: true, updated: hy.updated, source: hy.source,
+    });
+  }
+  for (const s of sites) if (!s.source && g && g.source) s.source = g.source;
+  if (!sites.length) return null;
+  const sum = k => { const v = sites.map(s => s[k]).filter(x => x != null); return v.length ? Math.round(v.reduce((a, b) => a + b, 0) * 10) / 10 : null; };
+  const updated = [g && g.updated, hy && hy.updated].filter(Boolean).sort().slice(-1)[0];
+  return { sample: false, updated, source: [g && g.source, hy && hy.source].filter(Boolean).join(' · '), sites,
+    totals: { capacityKw: sum('capacityKw'), nowKw: sum('nowKw'), todayKwh: sum('todayKwh'), monthKwh: sum('monthKwh'), totalKwh: sum('totalKwh'), sites: sites.length } };
+}
+
 export function renderGenerationOverview(root, data) {
   injectCSS(); root.innerHTML = '';
   if (!data || data.sample || !Array.isArray(data.sites) || !data.sites.length) return false;
@@ -88,7 +113,7 @@ export function renderGenerationOverview(root, data) {
       h('div', { class: 'gn-cs' }, h('span', { class: 'gn-dot' + (on ? '' : ' off') }), `${on ? '발전 중' : '대기'} · 지금 ${fmt1(s.nowKw)} kW · 용량 ${fmtCap(s.capacityKw)} kW`),
       sparkline(s),
       h('div', { class: 'gn-row' }, h('span', {}, '오늘'), h('b', {}, fmt0(s.todayKwh) + ' kWh')),
-      h('div', { class: 'gn-row' }, h('span', {}, '어제'), h('b', {}, fmt0(s.yesterdayKwh) + ' kWh')),
+      s.selfUse ? h('div', { class: 'gn-row' }, h('span', {}, '올해 누적'), h('b', {}, kwh(s.totalKwh))) : h('div', { class: 'gn-row' }, h('span', {}, '어제'), h('b', {}, fmt0(s.yesterdayKwh) + ' kWh')),
       h('div', { class: 'gn-row' }, h('span', {}, '이달 누적'), h('b', {}, kwh(s.monthKwh))));
     grid.append(card);
   }
@@ -103,9 +128,9 @@ export function renderGenerationSite(root, data, opts = {}) {
   if (!s) return false;
   const on = (s.nowKw || 0) > 0 && s.status === 'Run';
   const box = h('div', { class: 'gn gn-site' });
-  box.append(h('div', { class: 'gn-site-h' }, h('h3', {}, '지금 이 현장은'), h('div', { class: 'gn-cs' }, h('span', { class: 'gn-dot' + (on ? '' : ' off') }), `${on ? '발전 중' : '대기'} · 인버터 ${s.running || 0}/${s.inverters || 0} 운전 · ${whenText(data)}`)));
+  box.append(h('div', { class: 'gn-site-h' }, h('h3', {}, '지금 이 현장은'), h('div', { class: 'gn-cs' }, h('span', { class: 'gn-dot' + (on ? '' : ' off') }), `${on ? '발전 중' : '대기'} · ${s.selfUse ? '피드' : '인버터'} ${s.running || 0}/${s.inverters || 0} 운전 · ${whenText({ updated: s.updated || data.updated })}`)));
   box.append(h('div', { class: 'gn-tot' }, tile('지금 출력', fmt1(s.nowKw), `kW / ${fmtCap(s.capacityKw)}`), tile('오늘 발전량', fmt0(s.todayKwh), 'kWh'), tile('어제', fmt0(s.yesterdayKwh), 'kWh'), tile('이달 누적', kwh(s.monthKwh).replace(/ (MWh|kWh)$/, ''), (s.monthKwh || 0) >= 10000 ? 'MWh' : 'kWh')));
   box.append(sparkline(s, 640, 110));
-  box.append(h('div', { class: 'gn-foot' }, h('span', {}, `준공 후 총 누적 ${kwh(s.totalKwh)} · 지난달 ${kwh(s.prevMonthKwh)}`), h('span', {}, '출처: ' + (data.source || '현장 모니터링'))));
+  box.append(h('div', { class: 'gn-foot' }, h('span', {}, s.selfUse ? `올해 누적 ${kwh(s.totalKwh)} · 지난달 ${kwh(s.prevMonthKwh)} · 전량 자가소비` : `준공 후 총 누적 ${kwh(s.totalKwh)} · 지난달 ${kwh(s.prevMonthKwh)}`), h('span', {}, '출처: ' + (s.source || data.source || '현장 모니터링'))));
   root.append(box); return true;
 }

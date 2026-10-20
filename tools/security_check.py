@@ -116,6 +116,14 @@ def check_market():
             pr += [f'carbon.json: {x}' for x in cc.validate(json.load(io.open(cb, encoding='utf-8')))[:10]]
         except Exception as e:
             pr.append(f'carbon.json 검사 실패: {e}')
+    hy = os.path.join(ROOT, 'assets', 'data', 'hyosung-generation.json')
+    if os.path.exists(hy):
+        try:
+            spec = importlib.util.spec_from_file_location('qhub_collect', os.path.join(ROOT, 'tools', 'qhub_collect.py'))
+            qc = importlib.util.module_from_spec(spec); spec.loader.exec_module(qc)
+            pr += [f'hyosung-generation.json: {x}' for x in qc.validate(json.load(io.open(hy, encoding='utf-8')))[:10]]
+        except Exception as e:
+            pr.append(f'hyosung-generation.json 검사 실패: {e}')
     g = os.path.join(ROOT, 'assets', 'data', 'generation.json')
     if os.path.exists(g):
         try:

@@ -16,23 +16,26 @@ Promise.all([
 ]).then(([gen, carbon]) => {
   if (!root || !gen || !Array.isArray(gen.months) || !gen.months.length) return;
   const price = carbon && carbon.latest && carbon.latest.price ? carbon.latest.price : null;
-  const months = gen.months.filter(x => /^\d{4}-\d{2}$/.test(x.m) && x.kwh > 0).sort((a, b) => a.m.localeCompare(b.m)).map(x => ({ kwh: x.kwh, ym: x.m, tariffId: gen.tariffId }));
+  const months = gen.months.filter(x => /^\d{4}-\d{2}$/.test(x.m) && x.kwh > 0).sort((a, b) => a.m.localeCompare(b.m)).map(x => ({ kwh: x.kwh, ym: x.m, tariffId: gen.tariffId, partial: !!x.partial }));
   const S = summarize(months, price || 0);
+  S.rows.forEach((r, i) => { r.partial = months[i].partial; });
   const last = S.rows[S.rows.length - 1];
   root.innerHTML = '';
 
-  // 머리: 기준 시세·요금제
+  // 머리: 기준 시세·요금제 (+ 실시간 값이 있으면)
+  const L = gen.live || null;
   root.append(h('div', 'hy-basis',
     h('span', '', `요금제 ${last.tariff}`),
     h('span', '', price ? `배출권 ${carbon.latest.name} ${price.toLocaleString('ko-KR')}원/t (${carbon.latest.date})` : '배출권 시세 없음 — 가치 미산정'),
-    h('span', '', `배출계수 0.4567 tCO₂/MWh · 기금 ${(last.fundRate * 100).toFixed(1)}%`)));
+    h('span', '', `배출계수 0.4567 tCO₂/MWh · 기금 ${(last.fundRate * 100).toFixed(1)}%`),
+    ...(L && L.todayKwh != null ? [h('span', '', `실시간: 오늘 ${kwh(L.todayKwh)} · 이달 ${kwh(L.monthKwh || 0)} · 올해 ${kwh(L.yearKwh || 0)}`)] : [])));
 
   // 표
   const table = h('table', 'hy-table');
   table.append(h('thead', '', h('tr', '', ...['월', '실측 발전량', '전기요금 절감', '온실가스 감축', '배출권 가치', '경제효과 합계'].map(x => h('th', '', x)))));
   const tb = h('tbody');
   for (const r of S.rows) {
-    tb.append(h('tr', '', h('td', '', ymText(r.ym)), h('td', 'num', kwh(r.kwh)), h('td', 'num', man(r.total)), h('td', 'num', t2(r.co2T)), h('td', 'num', price ? man(r.carbonKrw) : '—'), h('td', 'num hi', man(r.benefit))));
+    tb.append(h('tr', '', h('td', '', ymText(r.ym) + (r.partial ? ' (집계 중)' : '')), h('td', 'num', kwh(r.kwh)), h('td', 'num', man(r.total)), h('td', 'num', t2(r.co2T)), h('td', 'num', price ? man(r.carbonKrw) : '—'), h('td', 'num hi', man(r.benefit))));
   }
   table.append(tb);
   const tf = h('tfoot', '', h('tr', '', h('td', '', `누적 ${S.months}개월`), h('td', 'num', kwh(S.kwh)), h('td', 'num', man(S.total)), h('td', 'num', t2(S.co2T)), h('td', 'num', price ? man(S.carbonKrw) : '—'), h('td', 'num hi', man(S.benefit))));

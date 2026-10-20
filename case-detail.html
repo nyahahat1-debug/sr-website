@@ -400,6 +400,9 @@ footer{background:var(--ink);padding:56px 0 30px}
 .hy-note{font-size:12px;color:var(--muted);line-height:1.6;margin-top:10px}
 @media(max-width:700px){.hy-row{flex-direction:column;gap:2px}.hy-row .v{text-align:left}}
 
+
+/* ── 발전 현황 위젯 ── */
+.gen-case{padding:0 0 clamp(28px,4vw,44px)}
 </style><script src="assets/js/site.js"></script>
 </head><body><a class="skip-link" href="#main">본문으로 바로가기</a><div id="progress"></div><header>
   <div class="wrap nav">
@@ -428,6 +431,9 @@ footer{background:var(--ink);padding:56px 0 30px}
     </div>
   </div>
 </section>
+<div class="gen-case" hidden>
+  <div class="wrap"><div id="genSite"></div></div>
+</div>
 
 <section class="detail-body">
   <div class="wrap">
@@ -555,4 +561,5 @@ footer{background:var(--ink);padding:56px 0 30px}
 </footer>
 <script src="assets/js/pages/reveal-case.js"></script><script src="assets/js/pages/nav.js"></script>
 <script type="module" src="assets/js/pages/case-detail-effect.js"></script>
+<script type="module" src="assets/js/pages/case-generation.js"></script>
 </body></html>

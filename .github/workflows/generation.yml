@@ -29,13 +29,20 @@ jobs:
           HS3_USER_ID: ${{ secrets.HS3_USER_ID }}
           HS3_PASSWORD: ${{ secrets.HS3_PASSWORD }}
         run: python tools/generation_collect.py --out assets/data/generation.json
+      - name: 효성 전주공장 발전량 수집 (Q.HUB, 비밀값 없으면 건너뜀)
+        env:
+          QHUB_USER_ID: ${{ secrets.QHUB_USER_ID }}
+          QHUB_PASSWORD: ${{ secrets.QHUB_PASSWORD }}
+        run: |
+          if [ -z "$QHUB_USER_ID" ]; then echo "QHUB 비밀값 없음 — 건너뜀"; exit 0; fi
+          python tools/qhub_collect.py --out assets/data/hyosung-generation.json || echo "Q.HUB 수집 실패 — 이전 파일 유지"
       - name: 결과 재검증
         run: python tools/security_check.py --ci
       - name: 변경분 커밋
         run: |
           git config user.name "generation-bot"
           git config user.email "generation-bot@users.noreply.github.com"
-          git add assets/data/generation.json
+          git add assets/data/generation.json assets/data/hyosung-generation.json
           if git diff --cached --quiet; then echo "변경 없음"; exit 0; fi
           git commit -m "발전 현황 갱신 $(date -u +'%Y-%m-%d %H:%M UTC')"
           git pull --rebase origin main
