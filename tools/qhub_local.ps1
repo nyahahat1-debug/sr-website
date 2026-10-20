@@ -1,4 +1,4 @@
-# 효성 전주공장(Q.HUB) 발전량을 국내 PC 에서 수집해 GitHub 에 올린다.
+﻿# 효성 전주공장(Q.HUB) 발전량을 국내 PC 에서 수집해 GitHub 에 올린다.
 #   Q.HUB(qhub.qcells.com)는 해외 IP 를 차단해 GitHub Actions 에서 받을 수 없으므로, 이 스크립트를 Windows 작업 스케줄러로
 #   매시(06~20시) 실행한다. 저장소 작업 폴더와 분리된 별도 클론(_private\qhub-runner)에서 돌아 로컬 작업을 건드리지 않는다.
 #
