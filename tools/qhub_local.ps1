@@ -21,6 +21,7 @@ foreach ($line in Get-Content $envFile -Encoding utf8) {
   if ($line -match '^\s*([A-Z_]+)\s*=\s*(.*)\s*$') { [Environment]::SetEnvironmentVariable($matches[1], $matches[2].Trim(), 'Process') }
 }
 if (-not $env:QHUB_USER_ID -or -not $env:QHUB_PASSWORD) { Log 'qhub.env 에 QHUB_USER_ID / QHUB_PASSWORD 가 없음'; exit 2 }
+if ($env:QHUB_USER_ID -like '*여기에*' -or $env:QHUB_PASSWORD -like '*여기에*') { Log 'qhub.env 가 아직 자리표시 값 — 실제 아이디·비밀번호로 바꿔야 함'; exit 2 }
 
 $remote = 'https://github.com/nyahahat1-debug/sr-website.git'
 try {
