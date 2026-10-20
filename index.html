@@ -941,11 +941,6 @@ html{overflow-x:clip}
 @media(max-width:760px){.mkh-hd{grid-template-columns:1fr;align-items:start}.mkh-hd .btn{justify-self:start}}
 
 
-/* ── 발전 현황 (메인) ── */
-.gen-home{padding:clamp(56px,7vw,88px) 0;border-top:1px solid var(--line)}
-.gen-hd{margin-bottom:20px}
-.gen-hd h2{font-size:clamp(26px,3vw,38px);font-weight:800;letter-spacing:-.025em}
-.gen-hd p{font-size:15.5px;line-height:1.7;color:var(--muted);margin-top:10px;max-width:620px}
 
 </style>
 
@@ -1250,19 +1245,6 @@ html{overflow-x:clip}
   </div>
 </section>
 
-<!-- ⑧-1 발전 현황 (HI SMART 모니터링 자동 수집) — 데이터 파일이 없으면 섹션 자체를 숨긴다 -->
-<section class="gen-home" id="generation" aria-labelledby="gen-h" hidden>
-  <div class="wrap">
-    <div class="gen-hd reveal">
-      <div>
-        <h2 id="gen-h">지금 발전 중인 에스알 현장</h2>
-        <p>에스알이 시공한 발전소의 실시간 출력과 오늘 발전량입니다.</p>
-      </div>
-    </div>
-    <div id="genHome"></div>
-  </div>
-</section>
-
 <!-- ⑩ CTA -->
 <section class="cta-section" id="contact">
   <div class="wrap reveal">
@@ -1302,7 +1284,6 @@ html{overflow-x:clip}
 <script src="assets/js/pages/index-main.js"></script>
 <script src="assets/js/pages/nav.js"></script>
 <script type="module" src="assets/js/pages/index-market.js"></script>
-<script type="module" src="assets/js/pages/index-generation.js"></script>
 <script type="module" src="assets/js/scene3d/main.js"></script>
 </body>
 </html>

@@ -416,10 +416,10 @@ function fillSiteEconomics(e) {
   const set = (sel, txt) => { const el = panel.querySelector(sel); if (el) el.textContent = txt; };
   set('.rl', `실제 현장 · ${SITE.completed} 준공`);
   set('.rt', `${SITE.name} ${f(SITE.capacityKw)} kW`);
-  set('.rtag', `실측 ${P.tou.month} 기준`);
+  set('.rtag', '실측 기준');
   const tag = panel.querySelector('.rtag'); if (tag) tag.style.cssText = 'color:#166534;background:#DCFCE7;border-color:#86EFAC';
   $('#ecoRows').innerHTML = `
-    <div class="rr"><span class="rk">월 발전량 (실측 ${P.tou.month})</span><span class="rv">${f(Math.round(P.monthGenKwh))}<span class="u">kWh</span></span></div>
+    <div class="rr"><span class="rk">월 발전량 (실측)</span><span class="rv">${f(Math.round(P.monthGenKwh))}<span class="u">kWh</span></span></div>
     <div class="rr"><span class="rk">연간 예상 발전량</span><span class="rv">${f(P.annualGenKwh)}<span class="u">kWh</span></span></div>
     <div class="rr"><span class="rk">월 전기요금 절감 (추정)</span><span class="rv">약 ${krw(P.monthSavingKrw)}<span class="u">만 원</span></span></div>
     <div class="rr hi"><span class="rk">연간 전기요금 절감효과</span><span class="rv">약 ${krw(P.annualSavingKrw)}<span class="u">만 원</span></span></div>
@@ -431,7 +431,7 @@ function fillSiteEconomics(e) {
     ['포함 항목', '기후환경 9원 · 연료비 5원 · 부가세 · 기금'],
     ['자가소비', '전량 (상시 부하 > 발전량)'],
   ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
-  set('.rfoot', `* ${P.basis}. 연간 수치는 분석 기준 예상치이며 온실가스 저감가치(연 약 ${P.co2Tons}톤·${krw(P.co2ValueKrw)}만 원)를 총 효과에 포함. 생산량·기상·요금 개정에 따라 달라질 수 있습니다.`);
+  set('.rfoot', `* 실측 발전량 × 현행 요금(기후환경·연료비·부가세·기금 포함) 기준. 연간 수치는 분석 기준 예상치이며 온실가스 저감가치(연 약 ${P.co2Tons}톤·${krw(P.co2ValueKrw)}만 원)를 총 효과에 포함. 생산량·기상·요금 개정에 따라 달라질 수 있습니다.`);
   const note = $('#noteModules'); if (note) note.textContent = `* 3D 모델: 전체 ${(factory.building && factory.building.buildings) ? new Set(factory.building.buildings.map(b => b.building)).size : 1}개 동 · 모듈 ${moduleSpec(factory.moduleCount)} (도면 기준) · 현장 공개 용량 ${f(SITE.capacityKw)} kW`;
   let links = $('#ecoLinks');
   if (!links) { links = document.createElement('div'); links.id = 'ecoLinks'; links.style.cssText = 'display:grid;gap:8px;margin-top:12px'; panel.querySelector('.rassump').after(links); }
