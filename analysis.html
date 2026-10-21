@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; img-src 'self' data:; media-src 'self'; connect-src 'self'; worker-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="color-scheme" content="only light">
 <title>경제성 분석 · 주식회사 에스알</title>
 <meta name="description" content="견적보다 사업성이 먼저입니다. 현장조사·데이터 수집·경제성 분석·리포트 제공 4단계로 태양광 투자 타당성을 숫자로 확인하세요.">
 <meta name="author" content="주식회사 에스알">
@@ -723,7 +723,7 @@ footer{background:var(--ink);padding:56px 0 30px}
 .cta-btns{display:flex;gap:11px;justify-content:center;flex-wrap:wrap;margin-top:30px}
 .cta-btns .btn{padding:13px 24px;font-size:14.5px}
 .cta-note{font-family:var(--mono);font-size:11.5px;color:var(--muted-dk);margin-top:22px}
-.fs-k,.trust-note,.cap-note,.cta-note,.rfoot,.fs-link a,.mc-link a,.cp-hd a,.ctag,.mc-tag,.rclabel,.dx-bverdict{
+.fs-k,.trust-note,.cap-note,.cta-note,.rfoot,.fs-link a,.mc-link a,.cp-hd a,.ctag,.mc-tag,.rclabel,.dx-bverdict{font-family:var(--sans);letter-spacing:0;text-transform:none}   /* 2026-10-21: 닫는 중괄호가 빠져 이 줄 아래 CSS 전체가 무시되던 문제 수정 */
 .trust-note,.cap-note,.cta-note{font-size:11.5px}
 .sec-lead,.ph-sub,.fs-hd p,.methods-hd p,.scope-hd p,.dx-hd p,.ab-hd p,.cta-section p,.cta-strip p,.why-left p,.proc-intro p,.sample-intro p,.cond-left p,.cg-left p{font-size:16px;line-height:1.7}
 .cta-strip,.cta-section{text-align:left;padding:clamp(64px,8vw,104px) 0}
@@ -741,6 +741,25 @@ footer{background:var(--ink);padding:56px 0 30px}
 .cta-tel-s{font-size:13px;color:#9FB6C8}
 @media(max-width:860px){.cta-strip .wrap,.cta-section .wrap{grid-template-columns:1fr}.cta-tel{grid-column:1;grid-row:auto;border-left:none;padding-left:0;border-top:1px solid var(--line-dk);padding-top:22px;margin-top:10px}}
 .cta-strip :focus-visible,.cta-section :focus-visible,footer :focus-visible,.dx-result :focus-visible,.stage :focus-visible{outline-color:var(--sun)}
+
+/* ═══ 모바일 최적화 v3 · 2026-10-21 ═══
+   17개 화면(280~960px: 1세대 폴드 커버 280, iPhone SE 320·375, Z Fold 커버 344, 갤럭시 360, Z Flip, iPhone 15 393, S24 Ultra 412,
+   Pro Max 440, Surface Duo 540, Z Fold 펼침 690, iPad mini 768, Pixel Fold 841, 가로 모드 4종) 자동 점검(tools/mobile_audit.js) 결과 반영.
+   원칙: 토큰·기능 유지. 좁은 화면의 겹침·잘림·자동 확대를 막고 터치 영역을 확보한다. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;color-scheme:only light}   /* iOS 가로 모드 글자 자동 확대 금지 · 브라우저 강제 다크모드(삼성 인터넷·크롬 자동 다크) 금지 */
+@media(max-width:480px){.nav>.btn{white-space:nowrap;padding:8px 10px;font-size:12px}}   /* 상단 버튼이 두 줄로 꺾여 로고를 덮던 문제 */
+@media(max-width:360px){.logo-img{height:26px}}
+@media(max-width:300px){.nav>.btn{display:none}}   /* 1세대 폴드 커버(280px): 메뉴 안의 '문의하기'로 대신 */
+@media(max-width:960px){.foot-bottom a{display:inline-block;padding:8px 0;margin:-8px 0}}   /* 터치 영역 */
+
+.ec-grid{grid-template-columns:380px minmax(0,1fr)}
+.ec-left,.ec-right{min-width:0}
+.ec-select{min-width:0;max-width:100%}   /* 긴 요금제 옵션이 select 의 최소 폭을 766px 로 키워 모든 폰에서 페이지가 축소되던 문제 */
+.ec-row2,.ec-tiles,.ec-cmp-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.ec-link{display:inline-block;padding:8px 0;margin-top:0}   /* 터치 영역 */
+@media(max-width:960px){.ec-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){.ec-row2,.ec-tiles,.ec-cmp-grid{grid-template-columns:minmax(0,1fr)}.ec-badge{font-size:10.5px}}
+@media(pointer:coarse){.ec-select,.ec-num-s{font-size:16px}.ec-num-s{width:108px}}   /* 16px 미만이면 iOS 가 입력 시 화면을 확대 */
 </style>
 <script src="assets/js/site.js"></script>
 </head>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; img-src 'self' data:; media-src 'self'; connect-src 'self'; worker-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'">
-<meta name="referrer" content="strict-origin-when-cross-origin"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="color-scheme" content="only light">
 <title>수전합리화 컨설팅 (고압→저압 전환) · 주식회사 에스알</title>
 <meta name="description" content="수전합리화 컨설팅 사례 — 고압(을)에서 저압(갑)으로 전환해 연간 약 4,539만 원(약 31%) 절감이 예상되는 분석 결과입니다.">
 <meta name="author" content="주식회사 에스알">
@@ -419,6 +419,27 @@ footer{background:var(--ink);padding:56px 0 30px}
 @media(min-width:961px){.dh-left{margin-right:0}.detail-hero .wrap{gap:48px}}
 @media(max-width:960px){.dh-left{margin-top:0}}
 @media(prefers-reduced-motion:reduce){.dh-save{animation:none}}
+
+/* ═══ 모바일 최적화 v3 · 2026-10-21 ═══
+   17개 화면(280~960px: 1세대 폴드 커버 280, iPhone SE 320·375, Z Fold 커버 344, 갤럭시 360, Z Flip, iPhone 15 393, S24 Ultra 412,
+   Pro Max 440, Surface Duo 540, Z Fold 펼침 690, iPad mini 768, Pixel Fold 841, 가로 모드 4종) 자동 점검(tools/mobile_audit.js) 결과 반영.
+   원칙: 토큰·기능 유지. 좁은 화면의 겹침·잘림·자동 확대를 막고 터치 영역을 확보한다. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;color-scheme:only light}   /* iOS 가로 모드 글자 자동 확대 금지 · 브라우저 강제 다크모드(삼성 인터넷·크롬 자동 다크) 금지 */
+@media(max-width:480px){.nav>.btn{white-space:nowrap;padding:8px 10px;font-size:12px}}   /* 상단 버튼이 두 줄로 꺾여 로고를 덮던 문제 */
+@media(max-width:360px){.logo-img{height:26px}}
+@media(max-width:300px){.nav>.btn{display:none}}   /* 1세대 폴드 커버(280px): 메뉴 안의 '문의하기'로 대신 */
+@media(max-width:960px){.foot-bottom a{display:inline-block;padding:8px 0;margin:-8px 0}}   /* 터치 영역 */
+
+.detail-grid{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+.detail-prose{min-width:0}
+.back{display:inline-flex;padding:8px 0;margin-top:-8px}
+@media(max-width:960px){
+  .detail-grid{grid-template-columns:minmax(0,1fr)}
+  .rate-scroll,.sum-scroll{position:relative}
+  .rate-scroll::before,.sum-scroll::before{content:"옆으로 밀어 전체 열을 볼 수 있습니다";display:block;position:sticky;left:0;font-size:11.5px;color:var(--muted);padding:6px 12px 0}
+}
+@media(max-width:600px){.dh-meta-label,.ba-label{font-size:11px}}
+@media(max-width:340px){.dh-meta{grid-template-columns:minmax(0,1fr)}.dh-save-val{font-size:30px}}
 </style><script src="assets/js/site.js"></script>
 </head><body><a class="skip-link" href="#main">본문으로 바로가기</a><div id="progress"></div><header>
   <div class="wrap nav">

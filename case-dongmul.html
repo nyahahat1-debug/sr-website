@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; img-src 'self' data:; media-src 'self'; connect-src 'self'; worker-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'">
-<meta name="referrer" content="strict-origin-when-cross-origin"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="color-scheme" content="only light">
 <title>동물태양광 발전소 (외 3건) · 주식회사 에스알</title>
 <meta name="description" content="동물태양광 발전소 외 3건, 축사 지붕 태양광 800kW 시공 사례.">
 <meta name="author" content="주식회사 에스알">
@@ -383,6 +383,26 @@ footer{background:var(--ink);padding:56px 0 30px}
 /* ── 발전 현황 위젯 ── */
 .gen-case{padding:0 0 clamp(28px,4vw,44px)}
 
+
+/* ═══ 모바일 최적화 v3 · 2026-10-21 ═══
+   17개 화면(280~960px: 1세대 폴드 커버 280, iPhone SE 320·375, Z Fold 커버 344, 갤럭시 360, Z Flip, iPhone 15 393, S24 Ultra 412,
+   Pro Max 440, Surface Duo 540, Z Fold 펼침 690, iPad mini 768, Pixel Fold 841, 가로 모드 4종) 자동 점검(tools/mobile_audit.js) 결과 반영.
+   원칙: 토큰·기능 유지. 좁은 화면의 겹침·잘림·자동 확대를 막고 터치 영역을 확보한다. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;color-scheme:only light}   /* iOS 가로 모드 글자 자동 확대 금지 · 브라우저 강제 다크모드(삼성 인터넷·크롬 자동 다크) 금지 */
+@media(max-width:480px){.nav>.btn{white-space:nowrap;padding:8px 10px;font-size:12px}}   /* 상단 버튼이 두 줄로 꺾여 로고를 덮던 문제 */
+@media(max-width:360px){.logo-img{height:26px}}
+@media(max-width:300px){.nav>.btn{display:none}}   /* 1세대 폴드 커버(280px): 메뉴 안의 '문의하기'로 대신 */
+@media(max-width:960px){.foot-bottom a{display:inline-block;padding:8px 0;margin:-8px 0}}   /* 터치 영역 */
+
+.detail-grid{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+.detail-prose{min-width:0}
+.back{display:inline-flex;padding:8px 0;margin-top:-8px}
+@media(max-width:960px){
+  .detail-grid{grid-template-columns:minmax(0,1fr)}
+  .dh-img{width:100%;height:auto;max-height:440px}   /* 폰에서 대표 사진이 280px 로 줄어들던 문제 */
+}
+@media(max-width:600px){.dh-meta-label,.sph-label,.ba-label{font-size:11px}}
+@media(max-width:340px){.dh-meta{grid-template-columns:minmax(0,1fr)}}
 </style><script src="assets/js/site.js"></script>
 </head><body><a class="skip-link" href="#main">본문으로 바로가기</a><div id="progress"></div><header>
   <div class="wrap nav">

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-uGwtOHovMYHv3joVtSCTd+Gj4mW4jj0mIBAvHl0S17w='; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' blob: data:; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'">
-<meta name="referrer" content="strict-origin-when-cross-origin"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="color-scheme" content="only light">
 <title>주식회사 에스알 · 태양광·전기공사·수전합리화</title>
 <meta name="description" content="태양광 EPC·전기공사·수전합리화 전문 주식회사 에스알. 시공 제안 전에 일사량·면적·발전량·투자비·회수기간을 분석한 경제성 리포트를 먼저 드립니다.">
 <meta name="author" content="주식회사 에스알">
@@ -942,6 +942,44 @@ html{overflow-x:clip}
 
 
 
+
+/* ═══ 모바일 최적화 v3 · 2026-10-21 ═══
+   17개 화면(280~960px: 1세대 폴드 커버 280, iPhone SE 320·375, Z Fold 커버 344, 갤럭시 360, Z Flip, iPhone 15 393, S24 Ultra 412,
+   Pro Max 440, Surface Duo 540, Z Fold 펼침 690, iPad mini 768, Pixel Fold 841, 가로 모드 4종) 자동 점검(tools/mobile_audit.js) 결과 반영.
+   원칙: 토큰·기능 유지. 좁은 화면의 겹침·잘림·자동 확대를 막고 터치 영역을 확보한다. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;color-scheme:only light}   /* iOS 가로 모드 글자 자동 확대 금지 · 브라우저 강제 다크모드(삼성 인터넷·크롬 자동 다크) 금지 */
+@media(max-width:480px){.nav>.btn{white-space:nowrap;padding:8px 10px;font-size:12px}}   /* 상단 버튼이 두 줄로 꺾여 로고를 덮던 문제 */
+@media(max-width:360px){.logo-img{height:26px}}
+@media(max-width:300px){.nav>.btn{display:none}}   /* 1세대 폴드 커버(280px): 메뉴 안의 '문의하기'로 대신 */
+@media(max-width:960px){.foot-bottom a{display:inline-block;padding:8px 0;margin:-8px 0}}   /* 터치 영역 */
+
+@media(max-width:960px){
+  .stage[data-mode="story"] #labels{display:none}   /* 스토리 모드: 3D 라벨이 아래쪽 글과 겹침 → 탐색 모드에서만 표시 */
+  .st-btns .btn-ghost-dk{background:rgba(13,27,42,.4)}   /* 3D 위 테두리 버튼 가독성 */
+  .cp-hd a{display:inline-block;padding:8px 0;margin:-8px 0}
+  .dx-reset{padding:8px 10px;margin:-8px -10px}
+}
+@media(max-width:600px){.ccard-wide .cimg>div:first-child{font-size:11px!important}}
+/* 가로 모드(높이 500px 이하): 스테이지 안의 글·패널·버튼이 겹치지 않게 압축 */
+@media(max-width:960px) and (max-height:500px){
+  .hud{display:none}
+  .ov{padding-bottom:14px}
+  .ov[data-ov="t5"],.ov[data-ov="t6"]{padding-top:72px}
+  .scene-text h1{font-size:22px;line-height:1.2}
+  .scene-text h2,.ov[data-ov="t5"] h2,.ov[data-ov="t6"] h2{font-size:18px}
+  .scene-text p{font-size:12.5px;line-height:1.5;margin-top:6px}
+  .st-note{display:none}
+  .st-btns{margin-top:8px;gap:6px}
+  .st-btns .btn,.ov[data-ov="t6"] .st-btns .btn{padding:8px 12px;font-size:12px}
+  .trust-bar{display:flex;flex-direction:row;flex-wrap:wrap;gap:4px 16px;margin-top:10px;padding-top:8px}
+  .ov-econ,.ov-cta{padding-bottom:10px}
+  .econ{max-height:calc(100dvh - 206px);padding:10px 12px 8px}
+  .cta-cards{display:flex;gap:6px;width:100%}
+  .cc{flex:1;min-width:0;padding:8px 10px}
+  .cc-k{font-size:10.5px}
+  .cc-t{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fallback-note{bottom:10px}
+}
 </style>
 
 <script type="importmap">{"imports":{"three":"./assets/vendor/three/three.module.js","three/addons/":"./assets/vendor/three/addons/"}}</script>

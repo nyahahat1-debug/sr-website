@@ -12,7 +12,8 @@
 try { parent.postMessage({ srMap: 'head' }, '*'); } catch (e) {}
 addEventListener('error', function (e) { try { parent.postMessage({ srMap: 'error', msg: String(e.message || e.type), src: String(e.filename || (e.target && e.target.src) || '') }, '*'); } catch (x) {} }, true);
 </script>
-<style>html,body{margin:0;padding:0;background:#EDF2F7;overflow:hidden}.root_daum_roughmap{width:100%!important}</style>
+<style>html,body{margin:0;padding:0;background:#EDF2F7;overflow:hidden}.root_daum_roughmap{width:100%!important}html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+</style>
 </head>
 <body>
 <!-- 카카오맵 퍼가기(roughmap)는 외부 스크립트를 실행하므로, 문의 폼이 있는 contact.html 에 직접 넣지 않고
