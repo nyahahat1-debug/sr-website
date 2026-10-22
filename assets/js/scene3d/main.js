@@ -463,17 +463,19 @@ function runIntro() {
   setTimeout(showLines, 120);   // 백그라운드 탭(rAF 정지) 대비
   // 영상은 인트로 시작과 동시에 숨긴 채 재생해 두고(첫 프레임 준비), 제목 세 줄이 다 나타나는 2.3s 에 바로 보이게 한다
     if (video && video.isConnected) video.play().then(() => { state.videoOK = true; }).catch(() => { video.style.display = 'none'; state.videoOK = false; stage.classList.add('video-off'); });
-  setTimeout(() => { stage.classList.add('intro-video'); }, 2300);
-  setTimeout(() => {                                                   // 제목 이동·축소
-    h1.style.transition = 'transform 1.9s cubic-bezier(.65,0,.2,1)';
+  // 타이밍: 폰(확대 연출 없음)은 세 줄이 다 뜨는 2.3s 직후 나머지를 바로 보여 준다. PC 는 이동·축소(1.6s)를 거친 뒤.
+  const tVideo = zoom ? 2300 : 1900, tMove = 2900, tRest = zoom ? 4600 : 2500;
+  setTimeout(() => { stage.classList.add('intro-video'); }, tVideo);
+  if (zoom) setTimeout(() => {                                         // 제목 이동·축소 (PC)
+    h1.style.transition = 'transform 1.6s cubic-bezier(.65,0,.2,1)';
     h1.style.transform = 'none';
-  }, 3400);
+  }, tMove);
   setTimeout(() => {
     const kids = [...ov.inner.children].filter(k => k !== h1);
-    kids.forEach((k, i) => { k.classList.add('anim-up'); k.style.setProperty('--d', (0.1 + i * 0.22).toFixed(2) + 's'); });
+    kids.forEach((k, i) => { k.classList.add('anim-up'); k.style.setProperty('--d', (0.05 + i * 0.16).toFixed(2) + 's'); });
     finish();
     setTimeout(() => { h1.style.transition = ''; h1.style.transform = ''; }, 100);
-  }, 5400);
+  }, tRest);
   return true;
 }
 
