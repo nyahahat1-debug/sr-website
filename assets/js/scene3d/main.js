@@ -450,11 +450,14 @@ function runIntro() {
   if (skip) { finish(); return false; }
   stage.classList.add('intro');
   const sr = stage.getBoundingClientRect(), r = h1.getBoundingClientRect();
-  const scale = Math.max(1, Math.min(1.9, (sr.width * 0.86) / r.width));   // 폰처럼 제목이 이미 화면 폭에 가까우면 키우지 않는다(키우면 화면 밖으로 잘림)
-  const dx = (sr.left + sr.width / 2) - (r.left + r.width * scale / 2);
-  const dy = (sr.top + sr.height / 2) - (r.top + r.height * scale / 2);
+  // 폰·태블릿(스테이지 폭 960px 이하): 제목이 이미 화면 폭을 거의 다 쓰므로 가운데 확대 연출을 생략한다 — 확대·이동하면 양옆이 잘린다
+  const zoom = sr.width > 960;
+  const scale = zoom ? Math.max(1.15, Math.min(1.9, (sr.width * 0.86) / r.width)) : 1;
+  let dx = zoom ? (sr.left + sr.width / 2) - (r.left + r.width * scale / 2) : 0;
+  const dy = zoom ? (sr.top + sr.height / 2) - (r.top + r.height * scale / 2) : 0;
+  if (zoom) { const pad = 16; dx = Math.min(dx, sr.right - pad - (r.left + r.width * scale)); dx = Math.max(dx, sr.left + pad - r.left); }   // 확대해도 화면 밖으로 나가지 않게
   h1.style.transformOrigin = '0 0'; h1.style.transition = 'none';
-  h1.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${scale.toFixed(3)})`;
+  h1.style.transform = zoom ? `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${scale.toFixed(3)})` : 'none';
   const showLines = () => { if (stage.classList.contains('intro')) stage.classList.add('intro-lines'); };
   requestAnimationFrame(() => requestAnimationFrame(showLines));
   setTimeout(showLines, 120);   // 백그라운드 탭(rAF 정지) 대비
