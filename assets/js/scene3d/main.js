@@ -450,7 +450,7 @@ function runIntro() {
   if (skip) { finish(); return false; }
   stage.classList.add('intro');
   const sr = stage.getBoundingClientRect(), r = h1.getBoundingClientRect();
-  const scale = Math.max(1.15, Math.min(1.9, (sr.width * 0.86) / r.width));
+  const scale = Math.max(1, Math.min(1.9, (sr.width * 0.86) / r.width));   // 폰처럼 제목이 이미 화면 폭에 가까우면 키우지 않는다(키우면 화면 밖으로 잘림)
   const dx = (sr.left + sr.width / 2) - (r.left + r.width * scale / 2);
   const dy = (sr.top + sr.height / 2) - (r.top + r.height * scale / 2);
   h1.style.transformOrigin = '0 0'; h1.style.transition = 'none';
