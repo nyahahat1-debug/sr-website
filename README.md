@@ -26,9 +26,11 @@
 - 문의 전송은 UI(`assets/js/pages/contact-main.js`)와 공급자 구현(`assets/js/contact/transport.js`)으로 나뉩니다. 어느 공급자를 쓸지는 `assets/js/contact/config.js` 가 정하며, 현재는 Web3Forms 입니다. 자체 접수 API 는 주소가 확정되면 `intakeApiUrl` 과 CSP(`tools/security_meta.py`)를 바꿔 켭니다. 한 번의 제출은 공급자 하나로만 보내고, 실패·시간초과 시 다른 공급자로 자동 우회하지 않습니다. 계약 초안: `docs/handoff/INTAKE_API_CONTRACT.md`(로컬 문서).
 - 요청 식별자(32자리 무작위)는 같은 내용을 재시도하면 같은 값, 내용이 바뀌면 새 값입니다. 서버 접수번호(접수 API 응답)와 브라우저 참조번호(`SR-YYMMDD-XXXX`)는 구분해 표시합니다.
 - 계산기 → 문의 링크는 요약(`?calc=`)과 함께 구조화된 계산 조건(`?calcd=`, 개인정보 없음)을 넘깁니다. 문의 페이지는 같은 모델로 재계산해 일치할 때만 받고, 아니면 요약만 씁니다(`assets/js/economics/calc-transfer.js`).
-- 발전 자료 계약 v2(`collectedAt`·`observedAt`·`quality`·`publish`)는 `docs/handoff/GENERATION_DATA_CONTRACT.md` 에 있습니다. 현장별 공개 동의는 `tools/generation_sites.json` 의 `publish.status`(granted/pending/denied)로 관리하고, denied 는 수집기가 공개 JSON 에서 제외합니다. 포털 관측 시각은 자료에 없으면 비워 둡니다.
+- 발전 자료 계약 v2(`collectedAt`·`observedAt`·`quality`·`publish`)는 `docs/handoff/GENERATION_DATA_CONTRACT.md` 에 있습니다. 현장별 공개 동의는 `tools/generation_sites.json` 의 `publish.status` 로 관리하며 **granted 인 현장만** 공개 JSON 에 실립니다(pending·denied·누락은 제외, `publish.fields` 가 필드 허용 목록). granted 현장이 없으면 수집기가 포털을 호출하지 않고 비공개 안전 JSON(`withheld`)으로 원자적으로 교체하고, 수집·검증 실패 시에도 기존 파일의 비공개 현장을 정리합니다. 브라우저는 granted 자료만 그립니다. 포털 관측 시각은 자료에 없으면 비워 둡니다.
+- 2026-10-29 기준 네 현장 모두 pending 이라, 배포 후 첫 수집 실행에서 두 공개 JSON 이 비공개 안전 JSON 으로 바뀌고 발전 위젯·효성 월별 표는 사라집니다. 동의가 확인된 현장만 granted 로 바꿉니다. 저장소에 남아 있는 옛(v1) 공개 파일·git 이력·캐시 정리는 별도 절차입니다(계약 4장).
 - 효성 사례의 월 절감 3,709만 원은 분석 보고서 값(기금 3.7%)이고, 예시 월에 적용되는 현행 요율 2.7%로 재계산한 값을 함께 표시합니다. 수전합리화 "20~30%" 는 근거가 없어 제거하고 확인된 사례(약 31%, 1건)만 표기합니다.
-- 검사: `node tools/model_test.mjs`, `python tools/collector_test.py`, `NODE_PATH=<playwright-core> node tools/ui_tests_phase2.js`(로컬 서버 필요, 외부 전송 없음).
+- 문의 재시도는 최초 전송 본문 스냅샷(요청 식별자·submittedAt 포함)을 그대로 다시 보내고, 의미 있는 입력이 바뀌면 새 식별자를 씁니다. 식별자는 페이지 수명 동안만 유지되며 새로고침 뒤의 재전송은 새 요청입니다. 서버 비교 규칙·CORS 는 `docs/handoff/INTAKE_API_CONTRACT.md` 4·6장.
+- 검사: `node tools/model_test.mjs`, `node tools/intake_contract_test.mjs`, `python tools/collector_test.py`(실제 파일로 공개 상태 전환 검사 포함), `NODE_PATH=<playwright-core> node tools/ui_tests_phase2.js`(로컬 서버 필요, 외부 전송 없음).
 
 ## 보안 규칙
 - 모든 페이지에 Content-Security-Policy 메타가 걸려 있어 인라인 `<script>` 와 `onclick` 같은 인라인 속성은 동작하지 않습니다. 스크립트는 `assets/js/` 아래 파일로 두고 `<script src>` 로 불러오세요.

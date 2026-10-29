@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""수집기 변환·검증 회귀 검사 (로그인·네트워크 없음) — python tools/collector_test.py
-  · 자료 계약 v2 필드(schemaVersion·collectedAt·observedAt=null·quality·publish)
-  · 공개 동의: denied 현장은 공개 JSON 에서 제외, pending 은 상태 그대로(동의로 간주 안 함), 플래그 없음 → pending + 경고
-  · 통신 이상·부분 수집 품질 판정, validate() 가 새 필드를 받아들이고 잘못된 값은 막는지
+"""수집기 공개 게이트·변환·검증 회귀 검사 (로그인·네트워크 없음) — python tools/collector_test.py
+  · granted 현장만 공개 JSON 에 포함. pending·denied·누락·알 수 없는 값은 이름·식별자·합계·오류 어디에도 나오지 않음
+  · publish.fields 허용 목록 적용, 내부 메모 미출력
+  · 공개 상태 전환: granted 파일이 있는 상태에서 pending/denied 로 바꾸고 재실행 → 비공개 안전 JSON 으로 교체(실제 파일, main() 실행)
+  · 수집 실패·검증 실패 경로와 v1 파일도 공개 제한을 우회하지 못함
 """
-import sys, os, json, datetime as dt, copy
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import sys, os, json, datetime as dt, copy, tempfile, subprocess, shutil
+HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 import generation_collect as G
 import qhub_collect as Q
+PY = sys.executable
 
 fails = 0
 def ok(c, m):
@@ -20,83 +22,156 @@ def ok(c, m):
 def portal_rows():
     return [
         {'SITE_ID': 'M0001', 'DESCRIPTION': '시험 현장 A', 'SIDO_NAME': '전북', 'SIGU_NAME': '시험시', 'totalCapacity': 100, 'PVPCS_Pac': 40.5, 'PVPCS_Daily_P': 300, 'Daily_Time': 3, 'INV_CNT': 2, 'runCount': 2, 'run_status': 'Run', 'communicationStatus': 'Normal'},
-        {'SITE_ID': 'M0002', 'DESCRIPTION': '시험 현장 B', 'SIDO_NAME': '전북', 'SIGU_NAME': '시험시', 'totalCapacity': 50, 'PVPCS_Pac': 0, 'PVPCS_Daily_P': 10, 'Daily_Time': 0.5, 'INV_CNT': 1, 'runCount': 0, 'run_status': 'Run', 'communicationStatus': 'Error'},
+        {'SITE_ID': 'M0002', 'DESCRIPTION': '비공개 현장 B', 'SIDO_NAME': '전북', 'SIGU_NAME': '시험시', 'totalCapacity': 50, 'PVPCS_Pac': 0, 'PVPCS_Daily_P': 10, 'Daily_Time': 0.5, 'INV_CNT': 1, 'runCount': 0, 'run_status': 'Run', 'communicationStatus': 'Error'},
         {'SITE_ID': 'M0003', 'DESCRIPTION': '시험 현장 C', 'SIDO_NAME': '전북', 'SIGU_NAME': '시험시', 'totalCapacity': 70, 'PVPCS_Pac': 12, 'PVPCS_Daily_P': 50, 'Daily_Time': 1, 'INV_CNT': 1, 'runCount': 1, 'run_status': 'Run', 'communicationStatus': 'Normal'},
     ]
-def fetch_ok(sid):
+def united(sid):
     return {'united': {'unitedSiteInfo': {'PVPCS_Pcs_Capa': 100, 'PVPCS_Pac': 40.5, 'PVPCS_Daily_P': 300, 'PVPCS_Day': 3, 'PVPCS_CurrentMonth_P': 5000, 'PVPCS_Month': 60, 'PVPCS_AfterMonth_P': 7000, 'PVPCS_Total_P': 100000}},
             'day': {'solraDayWork': {'runTime': ['06:00', '07:00', '08:00'], 'runData': [0, 10, 40.5]}},
             'month': {'solraMonthWork': {'runData': [100] * 30}}, 'year': {'solraYearWork': {'runData': [1000] * 12}}}
+calls = []
+def fetch_ok(sid): calls.append(sid); return united(sid)
 def fetch_fail(sid):
+    calls.append(sid)
     if sid == 'M0003': raise RuntimeError('timeout')
-    return fetch_ok(sid)
+    return united(sid)
 today = dt.date(2026, 10, 29)
+FIELDS = ['id', 'name', 'capacityKw', 'nowKw', 'todayKwh', 'daySeries']
 
-print('1) 공개 동의 상태별 처리')
+print('1) granted 만 공개 · 허용 목록 · 우회 노출 없음')
 cfgs = [
-    {'id': 'M0001', 'name': '현장 A', 'page': 'case-a.html', 'capacityKw': 100, 'publish': {'status': 'granted', 'fields': ['nowKw']}},
-    {'id': 'M0002', 'name': '현장 B', 'page': 'case-b.html', 'publish': {'status': 'denied'}},
-    {'id': 'M0003', 'name': '현장 C', 'page': 'case-c.html'},                                # 플래그 없음
+    {'id': 'M0001', 'name': '현장 A', 'page': 'case-a.html', 'capacityKw': 100, 'publish': {'status': 'granted', 'fields': FIELDS, 'note': '동의서 2026-10-01 (내부)'}},
+    {'id': 'M0002', 'name': '비공개 현장 B', 'page': 'case-b.html', 'publish': {'status': 'denied'}},
+    {'id': 'M0003', 'name': '대기 현장 C', 'page': 'case-c.html', 'publish': {'status': 'pending'}},
+    {'match': '시험 현장 C', 'name': '플래그 없음 D', 'page': 'case-d.html'},
+    {'id': 'M0003', 'name': '이상값 E', 'page': 'case-e.html', 'publish': {'status': 'yes'}},
     {'id': 'HYOSUNG', 'collector': 'qhub', 'name': '다른 수집기', 'publish': {'status': 'granted'}},
 ]
-d = G.build(cfgs, portal_rows(), fetch_ok, today)
-ids = [s['id'] for s in d['sites']]
-ok('M0002' not in ids and d['publishExcluded'] == ['현장 B'], 'denied 현장은 공개 JSON 에서 제외되고 이름만 publishExcluded 에 남음')
-ok('M0001' in ids and 'M0003' in ids, 'granted·플래그 없음 현장은 포함')
-a = next(s for s in d['sites'] if s['id'] == 'M0001'); c = next(s for s in d['sites'] if s['id'] == 'M0003')
-ok(a['publish'] == {'status': 'granted', 'allowed': True, 'fields': ['nowKw']}, 'granted → allowed True')
-ok(c['publish']['status'] == 'pending' and c['publish']['allowed'] is None, '플래그 없음 → pending, allowed None (동의로 간주하지 않음)')
-ok(any('publish.status 없음' in e for e in d['errors']), '플래그 없음은 경고로 기록')
-ok(all(s['id'] != 'HYOSUNG' for s in d['sites']), "collector:'qhub' 항목은 HI SMART 수집기가 건너뜀")
-ok(d['schemaVersion'] == 2 and d['collectedAt'] == d['updated'] == d['generatedAt'], 'schemaVersion 2 · collectedAt = updated(호환) = generatedAt')
-ok(all(s['observedAt'] is None for s in d['sites']), '관측 시각은 포털이 주지 않으므로 null (만들어 넣지 않음)')
+calls.clear(); d = G.build(cfgs, portal_rows(), fetch_ok, today)
+txt = json.dumps(d, ensure_ascii=False)
+ok([s['page'] for s in d['sites']] == ['case-a.html'], 'granted 현장 1곳만 포함 (denied·pending·누락·알 수 없는 값 제외)')
+ok(all(x not in txt for x in ('M0002', 'M0003', '비공개', '대기 현장', '플래그 없음', '이상값', 'case-b', 'case-c', 'case-d', 'case-e', 'publishExcluded', '동의서', '내부')), '비공개 현장의 식별자·이름·페이지·제외 목록·내부 메모가 JSON 어디에도 없음')
+ok(calls == ['M0001'], f'비공개 현장은 포털 호출도 하지 않음 (호출 {calls})')
+a = d['sites'][0]
+ok(set(a) == set(FIELDS) | set(G.PUBLIC_BASE_KEYS), f'허용 목록 + 기본 키만 출력: {sorted(a)}')
+ok(a['publish'] == {'status': 'granted', 'allowed': True, 'fields': FIELDS}, 'publish 에는 상태·허용 목록만 (note 없음)')
+ok(d['totals']['sites'] == 1 and d['totals']['capacityKw'] == 100 and d['totals']['monthKwh'] in (None, 0, 0.0), '합계는 공개 현장만 (허용 밖 monthKwh 는 합계에 안 들어감)')
+ok(d['errors'] == [], '비공개 현장 관련 경고·오류 문구 없음')
 ok(G.validate(d) == [], f'validate 통과 ({G.validate(d)})')
 
-print('2) 품질 판정')
-cfgs2 = [{'id': 'M0001', 'name': 'A', 'publish': {'status': 'granted'}}, {'id': 'M0002', 'name': 'B', 'publish': {'status': 'pending'}}, {'ids': ['M0001', 'M0003'], 'name': 'AC 합산', 'publish': {'status': 'pending'}}]
+print('2) 품질 판정 (공개 현장만)')
+cfgs2 = [{'id': 'M0001', 'name': 'A', 'page': 'a.html', 'publish': {'status': 'granted', 'fields': FIELDS + ['comm', 'ids']}}, {'id': 'M0002', 'name': 'B', 'page': 'b.html', 'publish': {'status': 'granted', 'fields': FIELDS + ['comm']}}, {'ids': ['M0001', 'M0003'], 'name': 'AC 합산', 'page': 'ac.html', 'publish': {'status': 'granted', 'fields': FIELDS + ['ids']}}]
 d2 = G.build(cfgs2, portal_rows(), fetch_fail, today)
 by = {s['name']: s for s in d2['sites']}
-ok(by['A']['quality']['status'] == 'ok', '정상 → ok')
-ok(by['B']['quality']['status'] == 'comm_error', "comm='Error' → comm_error")
-ok(by['AC 합산']['quality']['status'] == 'partial' and by['AC 합산']['ids'] == ['M0001'], '일부 현장 호출 실패 → partial, 합산은 받은 범위')
+ok(by['A']['quality']['status'] == 'ok' and by['B']['quality']['status'] == 'comm_error', "정상 → ok, comm='Error' → comm_error")
+ok(by['AC 합산']['quality']['status'] == 'partial' and by['AC 합산']['ids'] == ['M0001'], '일부 호출 실패 → partial, 합산은 받은 범위')
 ok(G.validate(d2) == [], 'validate 통과')
 
-print('3) validate 가 잘못된 v2 값을 막는지')
-bad = copy.deepcopy(d); bad['sites'][0]['quality'] = {'status': 'great'}
-ok(any('quality' in p for p in G.validate(bad)), '알 수 없는 quality.status 거부')
-bad = copy.deepcopy(d); bad['sites'][0]['observedAt'] = '2026-10-29 10:00'
-ok(any('observedAt' in p for p in G.validate(bad)), 'observedAt 형식 오류 거부')
-bad = copy.deepcopy(d); bad['sites'][0]['publish'] = {'status': 'denied', 'allowed': False}
-ok(any('publish' in p for p in G.validate(bad)), 'denied 현장이 공개 파일에 들어 있으면 거부')
-bad = copy.deepcopy(d); bad['collectedAt'] = 'yesterday'
-ok(any('collectedAt' in p for p in G.validate(bad)), 'collectedAt 형식 오류 거부')
+print('3) validate 가 공개 제한 위반을 막는지')
+bad = copy.deepcopy(d); bad['sites'][0]['publish'] = {'status': 'pending', 'allowed': None, 'fields': FIELDS}
+ok(any('granted' in p for p in G.validate(bad)), 'pending 현장이 공개 파일에 있으면 거부')
+bad = copy.deepcopy(d); bad['sites'][0]['monthKwh'] = 5000
+ok(any('허용 밖' in p for p in G.validate(bad)), '허용 목록 밖 필드 거부')
+bad = copy.deepcopy(d); bad['publishExcluded'] = ['x']
+ok(any('publishExcluded' in p for p in G.validate(bad)), '제외 목록(이름 노출) 거부')
+bad = copy.deepcopy(d); bad['sites'][0]['publish']['note'] = '동의서'
+ok(any('내부 메모' in p for p in G.validate(bad)), 'publish 내부 메모 거부')
 v1 = {'sample': False, 'updated': '2026-10-23T19:20:40+09:00', 'sites': [{'id': 'M0001', 'name': 'A', 'daySeries': {'t': [], 'kw': []}, 'monthSeries': [], 'yearSeries': []}], 'errors': []}
-ok(G.validate(v1) == [], '옛 v1 자료(새 필드 없음)도 validate 통과 — 호환')
+ok(any('granted' in p for p in G.validate(v1)), '옛 v1 자료(동의 플래그 없음)는 공개 파일로 검증 통과하지 못함')
+wh = G.withheld_payload('2026-10-29T10:00:00+09:00', today)
+ok(G.validate(wh) == [] and wh['sites'] == [] and 'name' not in json.dumps(wh), '비공개 안전 JSON 은 통과하고 현장 정보가 없음')
 
-print('4) Q.HUB 수집기')
+print('4) 공개 상태 전환 — 실제 파일 + main() 실행 (fixture)')
+def run_main(mod, tmp, cfg_sites, out, extra=()):
+    sites = os.path.join(tmp, 'sites.json'); json.dump({'sites': cfg_sites}, open(sites, 'w', encoding='utf-8'), ensure_ascii=False)
+    fx = os.path.join(tmp, 'fx'); os.makedirs(fx, exist_ok=True)
+    if mod == 'gen':
+        json.dump({'datas': portal_rows()}, open(os.path.join(fx, 'monitoring_site.json'), 'w', encoding='utf-8'))
+        for sid in ('M0001', 'M0002', 'M0003'):
+            for k, v in united(sid).items(): json.dump({'datas': v}, open(os.path.join(fx, f'{k}_{sid}.json'), 'w', encoding='utf-8'))
+        cmd = [PY, '-X', 'utf8', os.path.join(HERE, 'generation_collect.py'), '--out', out, '--sites', sites, '--fixture-dir', fx, *extra]
+    else:
+        json.dump({'multiEnergyData': [{'todayGenerationKwh': 1200, 'monthGenerationKwh': 30000, 'yearGenerationKwh': 900000, 'todayGenerationTime': 3.2, 'monthGenerationTime': 90}]}, open(os.path.join(fx, 'realtime.json'), 'w'))
+        json.dump({'siteRealTime': [{'id': 1, 'name': '피드1', 'capacity': 500, 'totalActivePowerKw': 120.5, 'finalTotalEnergy': 600, 'operStatus': 'Normal'}]}, open(os.path.join(fx, 'sites.json'), 'w', encoding='utf-8'))
+        json.dump({'chartData': [{'periodStart': '2026-10-29 07:00', 'totalCumulativeKwh': 50}]}, open(os.path.join(fx, 'chart.json'), 'w'))
+        cmd = [PY, '-X', 'utf8', os.path.join(HERE, 'qhub_collect.py'), '--out', out, '--sites', sites, '--fixture-dir', fx, '--status-file', os.path.join(tmp, 'status.json'), *extra]
+    r = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', cwd=tmp)
+    return r.returncode, (r.stdout + r.stderr), (json.load(open(out, encoding='utf-8')) if os.path.exists(out) else None)
+tmp = tempfile.mkdtemp(prefix='sr-collector-')
+try:
+    out = os.path.join(tmp, 'generation.json')
+    granted = [{'id': 'M0001', 'name': '현장 A', 'page': 'case-a.html', 'capacityKw': 100, 'publish': {'status': 'granted', 'fields': FIELDS}}]
+    rc, log, f = run_main('gen', tmp, granted, out)
+    ok(rc == 0 and f and [s['page'] for s in f['sites']] == ['case-a.html'] and f['sites'][0]['nowKw'] == 40.5, f'granted → 공개 파일 생성 (rc {rc})')
+    for st in ('pending', 'denied'):
+        cfg = copy.deepcopy(granted); cfg[0]['publish']['status'] = st
+        rc, log, f = run_main('gen', tmp, cfg, out)
+        ok(rc == 0 and f and f.get('withheld') is True and f['sites'] == [] and '현장 A' not in json.dumps(f, ensure_ascii=False) and 'M0001' not in json.dumps(f), f'granted 파일이 있는 상태에서 {st} 로 전환 후 재실행 → 비공개 안전 JSON 으로 교체 (rc {rc})')
+        ok('수집 호출 없음' in log, '비공개 전환 시 포털 호출 없음')
+    rc, log, f = run_main('gen', tmp, granted, out)
+    ok(rc == 0 and f and len(f['sites']) == 1, '다시 granted → 공개 파일 복귀')
+    ok(not any(n.startswith('.') and n.endswith('.tmp') for n in os.listdir(tmp)), '임시 파일이 남지 않음(원자적 교체)')
+    # 허용 목록 축소 후 재실행 → 파일의 필드도 줄어든다
+    cfg = copy.deepcopy(granted); cfg[0]['publish']['fields'] = ['name', 'todayKwh']
+    rc, log, f = run_main('gen', tmp, cfg, out)
+    ok(rc == 0 and set(f['sites'][0]) == {'name', 'todayKwh'} | set(G.PUBLIC_BASE_KEYS), '허용 목록 축소 → 출력 필드 축소')
+    # 수집 실패 경로: granted 파일이 있는데 denied 로 바뀐 뒤 수집이 실패해도(현장 없음) 기존 파일이 정리된다
+    run_main('gen', tmp, granted, out)
+    cfg = copy.deepcopy(granted) + [{'id': 'M0002', 'name': '비공개 B', 'page': 'case-b.html', 'publish': {'status': 'granted', 'fields': FIELDS}}]
+    rc, log, f = run_main('gen', tmp, cfg, out)   # 두 현장 공개 파일
+    cfg[1]['publish']['status'] = 'denied'; cfg[0]['id'] = 'M9999'; cfg[0].pop('match', None)   # A 는 포털에서 못 찾음(수집 실패 경로), B 는 denied
+    rc, log, f = run_main('gen', tmp, cfg, out)
+    ok(rc == 1 and f and 'case-b.html' not in json.dumps(f) and '비공개 B' not in json.dumps(f, ensure_ascii=False), f'수집 실패 경로(rc {rc})에서도 기존 파일의 denied 현장을 제거 (정리: {"withheld" if f.get("withheld") else "rewritten"})')
+    # v1 파일이 남아 있는 상태 + 수집 실패 → v1 은 공개 자료로 인정하지 않고 비공개 안전 JSON 으로
+    json.dump(v1, open(out, 'w', encoding='utf-8'))
+    cfg = [{'id': 'M9999', 'name': 'A', 'page': 'case-a.html', 'publish': {'status': 'granted', 'fields': FIELDS}}]
+    rc, log, f = run_main('gen', tmp, cfg, out)
+    ok(rc == 1 and f and f.get('withheld') is True and f['sites'] == [], '옛 v1 파일 + 수집 실패 → 비공개 안전 JSON 으로 교체')
+    # Q.HUB
+    outq = os.path.join(tmp, 'hyosung.json')
+    qg = [{'id': 'HYOSUNG', 'collector': 'qhub', 'name': '효성', 'publish': {'status': 'granted', 'fields': ['site', 'capacityKw', 'live', 'months']}}]
+    rc, log, f = run_main('qhub', tmp, qg, outq)
+    ok(rc == 0 and f and f['publish']['status'] == 'granted' and f['live']['todayKwh'] == 1200 and 'tariffId' not in f and 'portalCapacityKw' not in f, f'Q.HUB granted → 공개 파일(허용 목록 적용, rc {rc})')
+    for st in ('pending', 'denied'):
+        qc = copy.deepcopy(qg); qc[0]['publish']['status'] = st
+        rc, log, f = run_main('qhub', tmp, qc, outq)
+        ok(rc == 0 and f and f.get('withheld') is True and f['live'] is None and f['months'] == [] and '효성' not in json.dumps(f, ensure_ascii=False) and 'site' not in f, f'Q.HUB granted 파일 → {st} 전환 재실행 → 비공개 안전 JSON (rc {rc})')
+        st_file = json.load(open(os.path.join(tmp, 'status.json'), encoding='utf-8'))
+        ok(st_file.get('withheld') is True and st_file.get('ok') is True, '상태 파일에 withheld 기록')
+    ok(Q.validate(json.load(open(outq, encoding='utf-8'))) == [], '비공개 안전 JSON validate 통과')
+    # Q.HUB 옛 v1 파일 + granted + 수집 실패(fixture 없음) → 정리
+    json.dump({'site': '효성', 'live': {'todayKwh': 1}, 'months': [], 'updated': '2026-10-23T19:00:04+09:00'}, open(outq, 'w', encoding='utf-8'))
+    sites = os.path.join(tmp, 'sites.json'); json.dump({'sites': qg}, open(sites, 'w', encoding='utf-8'), ensure_ascii=False)
+    r = subprocess.run([PY, '-X', 'utf8', os.path.join(HERE, 'qhub_collect.py'), '--out', outq, '--sites', sites, '--fixture-dir', os.path.join(tmp, 'nope'), '--status-file', os.path.join(tmp, 'status.json')], capture_output=True, text=True, encoding='utf-8', cwd=tmp)
+    f = json.load(open(outq, encoding='utf-8'))
+    ok(r.returncode != 0 and f.get('withheld') is True and '효성' not in json.dumps(f, ensure_ascii=False), f'Q.HUB v1 파일 + 수집 실패(rc {r.returncode}) → 비공개 안전 JSON 으로 교체')
+finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
+print('5) Q.HUB build/validate')
 rt = {'multiEnergyData': [{'todayGenerationKwh': 1200, 'monthGenerationKwh': 30000, 'yearGenerationKwh': 900000, 'todayGenerationTime': 3.2, 'monthGenerationTime': 90}]}
-st = {'siteRealTime': [{'id': 1, 'name': '피드1', 'capacity': 500, 'totalActivePowerKw': 120.5, 'finalTotalEnergy': 600, 'operStatus': 'Normal'}, {'id': 2, 'name': '피드2', 'capacity': 500, 'totalActivePowerKw': 0, 'finalTotalEnergy': 600, 'operStatus': 'Error'}]}
-ch = {'chartData': [{'periodStart': '2026-10-29 07:00', 'totalCumulativeKwh': 50}, {'periodStart': '2026-10-29 08:00', 'totalCumulativeKwh': 120}]}
+st = {'siteRealTime': [{'id': 1, 'name': '피드1', 'capacity': 500, 'totalActivePowerKw': 120.5, 'finalTotalEnergy': 600, 'operStatus': 'Error'}]}
+ch = {'chartData': [{'periodStart': '2026-10-29 07:00', 'totalCumulativeKwh': 50}]}
 now = dt.datetime(2026, 10, 29, 10, 0, tzinfo=Q.KST)
-q = Q.build({}, rt, st, ch, {}, now, publish={'status': 'pending', 'allowed': None, 'fields': []})
-ok(q['schemaVersion'] == 2 and q['collectedAt'] == q['updated'] and q['observedAt'] is None, 'v2 필드 · 관측 시각 null')
-ok(q['quality']['status'] == 'comm_error', '피드 상태 Error → comm_error')
-ok(q['publish']['status'] == 'pending' and q['publish']['allowed'] is None, 'pending 그대로 기록')
+qp = {'status': 'granted', 'allowed': True, 'fields': ['site', 'capacityKw', 'portalCapacityKw', 'tariffId', 'live', 'months']}
+q = Q.build({}, rt, st, ch, {}, now, publish=qp)
+ok(q['schemaVersion'] == 2 and q['collectedAt'] == q['updated'] and q['observedAt'] is None and q['quality']['status'] == 'comm_error', 'v2 필드 · 관측 시각 null · 피드 Error → comm_error')
 ok(Q.validate(q) == [], f'validate 통과 ({Q.validate(q)})')
-ok(Q.build({}, rt, st, ch, {}, now, publish={'status': 'denied', 'allowed': False, 'fields': []}) is None, 'denied → None (공개 파일을 쓰지 않음)')
+for s_ in ('pending', 'denied', 'unknown'):
+    ok(Q.build({}, rt, st, ch, {}, now, publish={'status': s_, 'allowed': False, 'fields': []}) is None, f'{s_} → None')
+bad = copy.deepcopy(q); bad['publish'] = {'status': 'pending', 'allowed': None, 'fields': []}
+ok(any('granted' in p for p in Q.validate(bad)), 'pending 상태 파일에 값이 있으면 거부')
+bad = copy.deepcopy(q); bad['extra'] = 1
+ok(any('허용 밖' in p for p in Q.validate(bad)), '허용 밖 상위 키 거부')
 pub = Q.publish_cfg()
-ok(pub['status'] in ('granted', 'pending', 'denied'), f"generation_sites.json 의 qhub 항목에서 공개 상태를 읽음 ({pub['status']})")
-bad = copy.deepcopy(q); bad['publish'] = {'status': 'denied', 'allowed': False}
-ok(any('publish' in p for p in Q.validate(bad)), 'denied 가 공개 파일에 있으면 거부')
+ok(pub['status'] in ('granted', 'pending', 'denied', 'unknown') and pub['allowed'] == (pub['status'] == 'granted'), f"저장소 설정의 qhub 공개 상태 읽기 ({pub['status']})")
 
-print('5) 현재 저장소 설정 파일')
+print('6) 현재 저장소 설정·공개 파일')
 cfg = json.load(open(G.SITES_FILE, encoding='utf-8'))
-ok(all(isinstance(c.get('publish'), dict) and c['publish'].get('status') in G.PUBLISH_STATES for c in cfg['sites']), '모든 현장에 publish.status 가 있음')
-ok(sum(1 for c in cfg['sites'] if c.get('collector') == 'qhub') == 1, 'qhub 항목 1개')
-cur = json.load(open(os.path.join(os.path.dirname(G.SITES_FILE), '..', 'assets', 'data', 'generation.json'), encoding='utf-8'))
-ok(G.validate(cur) == [], '현재 공개 generation.json(v1) 이 새 validate 를 통과')
-cur2 = json.load(open(os.path.join(os.path.dirname(G.SITES_FILE), '..', 'assets', 'data', 'hyosung-generation.json'), encoding='utf-8'))
-ok(Q.validate(cur2) == [], '현재 공개 hyosung-generation.json(v1) 이 새 validate 를 통과')
+ok(all(isinstance(c.get('publish'), dict) and c['publish'].get('status') in G.PUBLISH_STATES and c['publish'].get('fields') for c in cfg['sites']), '모든 현장에 publish.status·fields 가 있음')
+ok(not any(c['publish']['status'] == 'granted' for c in cfg['sites']), '현재 granted 현장 없음(동의 미확인) → 다음 수집 실행에서 공개 파일이 비공개 안전 JSON 으로 바뀐다')
+cur = json.load(open(os.path.join(HERE, '..', 'assets', 'data', 'generation.json'), encoding='utf-8'))
+ok(G.validate(cur) != [], '현재 공개 generation.json(v1, 동의 플래그 없음)은 새 validate 를 통과하지 않음 → 재배포 후 첫 실행에서 교체됨')
 
 print('\n실패 %d건' % fails if fails else '\n전부 통과')
 sys.exit(1 if fails else 0)

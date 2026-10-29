@@ -20,16 +20,47 @@ FIRST_MONTH = '2025-07'       # 월별 이력 적재 시작(준공 2025). 발전
 SITES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'generation_sites.json')
 SCHEMA_VERSION = 2
 
+PUBLIC_BASE_KEYS = ('schemaVersion', 'collectedAt', 'generatedAt', 'updated', 'observedAt', 'quality', 'publish', 'errors', 'apiCalls', 'source', 'note')   # 상태 키 (값 데이터 아님)
+SOURCE_TEXT = '한화큐셀 Q.HUB 모니터링 (에스알 계정) · 매시 갱신'
+
 def publish_cfg(path=SITES_FILE):
-    """generation_sites.json 의 collector:'qhub' 항목에서 공개 동의 상태를 읽는다. 없으면 pending(확인 대기 — 동의로 간주하지 않음)."""
+    """generation_sites.json 의 collector:'qhub' 항목에서 공개 동의 상태를 읽는다. granted 만 공개(allowed True). 없거나 다른 값이면 비공개."""
     try:
         for c in json.load(open(path, encoding='utf-8')).get('sites', []):
             if c.get('collector') == 'qhub':
                 pub = c.get('publish') if isinstance(c.get('publish'), dict) else {}
-                st = pub.get('status') if pub.get('status') in ('granted', 'pending', 'denied') else 'pending'
-                return {'status': st, 'allowed': True if st == 'granted' else (False if st == 'denied' else None), 'fields': [f for f in (pub.get('fields') or []) if isinstance(f, str) and f.isidentifier()][:40]}
+                st = pub.get('status') if pub.get('status') in ('granted', 'pending', 'denied') else 'unknown'
+                return {'status': st, 'allowed': st == 'granted', 'fields': [f for f in (pub.get('fields') or []) if isinstance(f, str) and f.isidentifier()][:40]}
     except Exception: pass
-    return {'status': 'pending', 'allowed': None, 'fields': []}
+    return {'status': 'unknown', 'allowed': False, 'fields': []}
+
+def withheld_payload(now_s):
+    """비공개 안전 JSON — 현장 이름·용량·값·월별 자료가 없다."""
+    return {'schemaVersion': SCHEMA_VERSION, 'withheld': True, 'updated': now_s, 'collectedAt': now_s, 'generatedAt': now_s, 'observedAt': None,
+            'quality': None, 'publish': {'status': 'withheld', 'allowed': False, 'fields': []}, 'source': SOURCE_TEXT, 'live': None, 'months': [], 'errors': []}
+
+def write_atomic(path, data):
+    d = os.path.dirname(path) or '.'; os.makedirs(d, exist_ok=True)
+    tmp = os.path.join(d, '.' + os.path.basename(path) + '.tmp')
+    with open(tmp, 'w', encoding='utf-8') as f: json.dump(data, f, ensure_ascii=False, separators=(',', ':'))
+    os.replace(tmp, path)
+
+def sanitize_existing(path, publish, now_s):
+    """새 값을 못 받은 경로에서 기존 파일이 공개 제한을 어기면(비공개 상태인데 값이 있음, 허용 밖 필드) 비공개 안전 JSON 으로 교체. 'withheld' | 'rewritten' | 'unchanged' | 'absent'"""
+    if not os.path.exists(path): return 'absent'
+    try: old = json.load(open(path, encoding='utf-8'))
+    except Exception: old = None
+    if not isinstance(old, dict): write_atomic(path, withheld_payload(now_s)); return 'withheld'
+    if not publish['allowed']:
+        if old.get('withheld') and not old.get('live') and not old.get('months'): return 'unchanged'
+        write_atomic(path, withheld_payload(now_s)); return 'withheld'
+    pb = old.get('publish')
+    if not (isinstance(pb, dict) and pb.get('status') == 'granted'):          # v1(동의 플래그 없음) 자료는 공개 자료로 보지 않는다
+        write_atomic(path, withheld_payload(now_s)); return 'withheld'
+    extra = [k for k in old if k not in PUBLIC_BASE_KEYS and k not in publish['fields']]
+    if not extra and pb.get('fields') == publish['fields']: return 'unchanged'
+    new = {k: v for k, v in old.items() if k in PUBLIC_BASE_KEYS or k in publish['fields']}; new['publish'] = publish
+    write_atomic(path, new); return 'rewritten'
 
 class Client:
     def __init__(self, uid, pw):
@@ -88,9 +119,9 @@ def months_between(a, b):
 # ── 변환 ────────────────────────────────────────────────────────────
 def build(prev, realtime, sites, chart, reports, now, publish=None):
     """realtime: getRealTimeSiteAjax, sites: getMainSiteListAjax, chart: getSiteChartList(HOUR), reports: {ym: getIntegratedData}
-    publish: 공개 동의 상태(publish_cfg()). denied 면 None 을 돌려 공개 파일을 쓰지 않게 한다."""
+    publish: 공개 동의 상태(publish_cfg()). granted 가 아니면 None (호출자가 비공개 안전 JSON 으로 교체한다). publish.fields 는 상위 키 허용 목록."""
     publish = publish or publish_cfg()
-    if publish['status'] == 'denied': return None
+    if not publish['allowed']: return None
     me = ((realtime or {}).get('multiEnergyData') or [{}])[0]
     feeds = []
     for s in (sites or {}).get('siteRealTime') or []:
@@ -111,7 +142,7 @@ def build(prev, realtime, sites, chart, reports, now, publish=None):
     mlist = [months[k] for k in sorted(months)]
     now_s = now.strftime('%Y-%m-%dT%H:%M:%S+09:00')
     comm_err = any(str(f.get('status', '')).lower() in ('error', 'fault', 'comm error') for f in feeds)
-    return {
+    full = {
         'schemaVersion': SCHEMA_VERSION, 'collectedAt': now_s, 'generatedAt': now_s,
         'observedAt': None,                     # Q.HUB 응답에 계측 시각이 없다 — 만들어 넣지 않는다
         'quality': {'status': 'comm_error' if comm_err else 'ok', 'note': '포털이 피드 상태를 오류로 표시' if comm_err else None},
@@ -119,12 +150,13 @@ def build(prev, realtime, sites, chart, reports, now, publish=None):
         'site': SITE_NAME, 'capacityKw': CAPACITY_KW, 'portalCapacityKw': round(sum((f['capacityKw'] or 0) for f in feeds), 1) if feeds else None, 'tariffId': TARIFF_ID,
         'note': '월별 발전량은 Q.HUB 발전보고서의 일별 값을 더한 것. 이번 달은 집계 중(partial). 자가소비 현장이라 포털의 SMP·REC 수익은 쓰지 않고 요금제로 절감액을 계산한다.',
         'updated': now.strftime('%Y-%m-%dT%H:%M:%S+09:00'),
-        'source': '한화큐셀 Q.HUB 모니터링 (에스알 계정) · 매시 갱신',
+        'source': SOURCE_TEXT,
         'live': {'nowKw': round(sum(f['nowKw'] for f in feeds), 1) if feeds else None, 'todayKwh': num(me.get('todayGenerationKwh')), 'monthKwh': num(me.get('monthGenerationKwh')),
                  'yearKwh': num(me.get('yearGenerationKwh')), 'todayHours': num(me.get('todayGenerationTime')), 'monthHours': num(me.get('monthGenerationTime')),
                  'feeds': feeds, 'daySeries': {'t': t, 'kw': kw}},
         'months': mlist, 'errors': [],
     }
+    return {k: v for k, v in full.items() if k in PUBLIC_BASE_KEYS or k in publish['fields']}   # 허용 목록 적용
 
 def _ok(v, lo, hi): return v is None or (isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) and lo <= v <= hi)
 
@@ -140,7 +172,13 @@ def validate(data):
     q = data.get('quality')
     if q is not None and (not isinstance(q, dict) or q.get('status') not in ('ok', 'stale', 'comm_error', 'partial', 'unknown')): pr.append('quality')
     pb = data.get('publish')
-    if pb is not None and (not isinstance(pb, dict) or pb.get('status') not in ('granted', 'pending') or pb.get('allowed') not in (True, None)): pr.append('publish')
+    if data.get('withheld'):
+        if data.get('live') is not None or data.get('months') or any(k in data for k in ('site', 'capacityKw', 'portalCapacityKw')): pr.append('withheld 파일에 값')
+    elif not isinstance(pb, dict) or pb.get('status') != 'granted' or pb.get('allowed') is not True or not isinstance(pb.get('fields'), list): pr.append('publish(granted 아님)')
+    else:
+        extra = [k for k in data if k not in PUBLIC_BASE_KEYS and k not in pb['fields']]
+        if extra: pr.append('허용 밖 필드: ' + ','.join(extra[:5]))
+        if any(k in pb for k in ('note', 'consentRef', 'memo')): pr.append('publish 에 내부 메모')
     L = data.get('live') or {}
     for k, hi in (('nowKw', 1e5), ('todayKwh', 1e6), ('monthKwh', 1e8), ('yearKwh', 1e9), ('todayHours', 24), ('monthHours', 800)):
         if not _ok(L.get(k), 0, hi): pr.append(f'live.{k} 범위')
@@ -162,12 +200,21 @@ def validate(data):
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument('--out', default='assets/data/hyosung-generation.json'); ap.add_argument('--fixture-dir'); ap.add_argument('--max-months', type=int, default=6)
     ap.add_argument('--status-file', default='assets/data/qhub-status.json', help='성공/실패와 (자격증명을 지운) 오류 메시지를 남기는 작은 파일 — 로그 없이도 원인을 볼 수 있게')
+    ap.add_argument('--sites', default=SITES_FILE)
     a = ap.parse_args()
     def status(ok, **kw):
         try:
             with open(a.status_file, 'w', encoding='utf-8') as f: json.dump({'ok': ok, 'at': dt.datetime.now(KST).strftime('%Y-%m-%dT%H:%M:%S+09:00'), **kw}, f, ensure_ascii=False)
         except Exception: pass
-    now = dt.datetime.now(KST); cur = now.strftime('%Y-%m')
+    now = dt.datetime.now(KST); cur = now.strftime('%Y-%m'); now_s = now.strftime('%Y-%m-%dT%H:%M:%S+09:00')
+    publish = publish_cfg(a.sites)
+    if not publish['allowed']:
+        # 공개 동의가 granted 가 아니다 → 포털을 호출하지 않고 비공개 안전 JSON 으로 교체(원자적). 이전 공개 파일이 남지 않는다.
+        write_atomic(a.out, withheld_payload(now_s)); status(True, stage='publish', withheld=True)
+        print(f"공개 동의 상태 {publish['status']} — 비공개 안전 JSON 으로 교체했습니다 (수집 호출 없음)"); return
+    def on_failure(stage):
+        r = sanitize_existing(a.out, publish, now_s)
+        print(f'{stage} — 새 값을 쓰지 않습니다. 기존 파일 정리: {r}', file=sys.stderr)
     prev = {}
     if os.path.exists(a.out):
         try: prev = json.load(open(a.out, encoding='utf-8'))
@@ -176,13 +223,15 @@ def main():
     wanted = [ym for ym in months_between(FIRST_MONTH, cur) if ym not in have][-a.max_months:]   # 없는 달 + 이번 달 (한 번에 최대 N)
 
     if a.fixture_dir:
-        fx = lambda n: json.load(open(os.path.join(a.fixture_dir, n), encoding='utf-8'))
-        reports = {}
-        for ym in wanted:
-            p = os.path.join(a.fixture_dir, f'report_{ym}.json')
-            if os.path.exists(p): reports[ym] = json.load(open(p, encoding='utf-8'))
-        data = build(prev, fx('realtime.json'), fx('sites.json'), fx('chart.json'), reports, now); calls = 0
-        if data is None: status(False, stage='publish', error='공개 금지(denied) — 파일을 쓰지 않습니다'); print('공개 금지(denied): 공개 파일을 쓰지 않습니다', file=sys.stderr); sys.exit(3)
+        try:
+            fx = lambda n: json.load(open(os.path.join(a.fixture_dir, n), encoding='utf-8'))
+            reports = {}
+            for ym in wanted:
+                p = os.path.join(a.fixture_dir, f'report_{ym}.json')
+                if os.path.exists(p): reports[ym] = json.load(open(p, encoding='utf-8'))
+            data = build(prev, fx('realtime.json'), fx('sites.json'), fx('chart.json'), reports, now, publish); calls = 0
+        except Exception as e:
+            status(False, stage='fixture', error=str(e)[:200].replace('<', '')); print('fixture 읽기 실패:', str(e)[:200], file=sys.stderr); on_failure('수집 실패'); sys.exit(1)
     else:
         uid, pw = os.environ.get('QHUB_USER_ID', '').strip(), os.environ.get('QHUB_PASSWORD', '')
         if not uid or not pw: print('QHUB_USER_ID, QHUB_PASSWORD 환경변수가 필요합니다', file=sys.stderr); sys.exit(2)
@@ -198,29 +247,25 @@ def main():
                 s0, e0 = month_range(ym); e0 = min(e0, now.strftime('%Y-%m-%d'))
                 try: reports[ym] = c.post('/report/getIntegratedData.do', {'startDate': s0, 'endDate': e0, 'selectedSiteIds': ids, 'selectedSiteNames': names, 'timeGroupType': 'weekly', 'reportType': 'monthly'})
                 except Exception as e: errors.append(f'{ym}: ' + redact(e, pw, uid))
-            data = build(prev, realtime, sites, chart, reports, now)
-            if data is None: raise SystemExit(3)
+            data = build(prev, realtime, sites, chart, reports, now, publish)
             data['errors'] = errors
         except urllib.error.HTTPError as e:
             msg = f'HTTP {e.code} {e.reason} ({redact(getattr(e, "url", ""), pw, uid)[:80]})' + (' — 해외 IP 차단 가능성' if e.code in (403, 406, 429) else '')
-            status(False, stage='fetch', error=msg, calls=c.calls); print('수집 실패:', msg, file=sys.stderr); sys.exit(1)
-        except SystemExit:
-            status(False, stage='publish', error='공개 금지(denied) — 파일을 쓰지 않습니다'); print('공개 금지(denied): 공개 파일을 쓰지 않습니다', file=sys.stderr); c.logout(); sys.exit(3)
+            status(False, stage='fetch', error=msg, calls=c.calls); print('수집 실패:', msg, file=sys.stderr); on_failure('수집 실패'); sys.exit(1)
         except Exception as e:
             msg = redact(e, pw, uid); status(False, stage='fetch', error=msg, calls=c.calls, session=str(getattr(c, 'last_status', ''))[:120].replace('<', ''))
-            print('수집 실패:', msg, file=sys.stderr); sys.exit(1)
+            print('수집 실패:', msg, file=sys.stderr); on_failure('수집 실패'); sys.exit(1)
         finally:
             c.logout()
         calls = c.calls
     data['apiCalls'] = calls
     pr = validate(data)
     if pr:
-        status(False, stage='validate', error='; '.join(pr[:5])[:300]); print('검증 실패 — 파일을 쓰지 않습니다:', pr[:10], file=sys.stderr); sys.exit(1)
-    os.makedirs(os.path.dirname(a.out) or '.', exist_ok=True)
-    with open(a.out, 'w', encoding='utf-8') as f: json.dump(data, f, ensure_ascii=False, separators=(',', ':'))
-    status(True, calls=calls, months=len(data['months']), newMonths=len(wanted), errors=data['errors'][:3])
-    L = data['live']
-    print(f"ok: 오늘 {L.get('todayKwh')} kWh, 이달 {L.get('monthKwh')} kWh, 월별 {len(data['months'])}개월(새로 {len(wanted)}), 호출 {calls}회, 오류 {data['errors'] or '없음'}")
+        status(False, stage='validate', error='; '.join(pr[:5])[:300]); print('검증 실패 — 파일을 쓰지 않습니다:', pr[:10], file=sys.stderr); on_failure('검증 실패'); sys.exit(1)
+    write_atomic(a.out, data)
+    status(True, calls=calls, months=len(data.get('months') or []), newMonths=len(wanted), errors=data['errors'][:3])
+    L = data.get('live') or {}
+    print(f"ok: 오늘 {L.get('todayKwh')} kWh, 이달 {L.get('monthKwh')} kWh, 월별 {len(data.get('months') or [])}개월(새로 {len(wanted)}), 호출 {calls}회, 오류 {data['errors'] or '없음'}")
 
 if __name__ == '__main__':
     main()

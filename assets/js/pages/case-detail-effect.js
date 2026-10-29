@@ -3,7 +3,7 @@ import { summarize, publishedMonthTotal, fundRateAt } from '../economics/selfuse
 import { TARIFF_SOURCE } from '../economics/tariff.js';
 import { SITE_PRESETS } from '../economics/presets.js';
 
-// 공개 분석값(3,709만 원 · 기금 3.7%)을 같은 시간대 배분으로 현행 요율(예시 월 기준 법정 요율)에서 다시 계산해 함께 보여 준다.
+// 공개 분석값(3,709만 원 · 기금 3.7%)을 같은 시간대 배분으로 예시 월에 적용되는 요율(정부 발표 기준 2025-07~ 2.7%)에서 다시 계산해 함께 보여 준다 — '가정별 재계산값'. 월별 표는 '월별 추정값'.
 try {
   const pub = SITE_PRESETS.hyosung.published;
   const rate = fundRateAt(pub.tou.month.replace('.', '-'));
@@ -11,7 +11,7 @@ try {
   const orig = publishedMonthTotal(pub, pub.fundRateApplied);
   const manWon = v => Math.round(v / 1e4).toLocaleString('ko-KR') + '만 원';
   const el1 = document.getElementById('hyRecalc'), el2 = document.getElementById('hyRecalc2');
-  if (el1) el1.textContent = `월 합계 약 ${manWon(recalc.total)} (기금 ${(rate * 100).toFixed(1)}% · 분석값 대비 ${manWon(orig.total - recalc.total)} 차이)`;
+  if (el1) el1.textContent = `월 합계 약 ${manWon(recalc.total)} (기금 ${(rate * 100).toFixed(1)}% 가정 · 보고서값 대비 ${manWon(orig.total - recalc.total)} 차이)`;
   if (el2) el2.textContent = manWon(recalc.total);
 } catch (e) { /* 프리셋이 없으면 '—' 로 둔다 */ }
 
@@ -27,7 +27,8 @@ Promise.all([
   fetch('assets/data/hyosung-generation.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null),
   fetch('assets/data/carbon.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null),
 ]).then(([gen, carbon]) => {
-  if (!root || !gen || !Array.isArray(gen.months) || !gen.months.length) return;
+  if (!root || !gen || !gen.publish || gen.publish.status !== 'granted' || gen.publish.allowed !== true) return;   // 공개 동의(granted) 자료만 — withheld·v1 은 표시하지 않음
+  if (!Array.isArray(gen.months) || !gen.months.length) return;
   const price = carbon && carbon.latest && carbon.latest.price ? carbon.latest.price : null;
   const months = gen.months.filter(x => /^\d{4}-\d{2}$/.test(x.m) && x.kwh > 0).sort((a, b) => a.m.localeCompare(b.m)).map(x => ({ kwh: x.kwh, ym: x.m, tariffId: gen.tariffId, partial: !!x.partial }));
   const S = summarize(months, price || 0);

@@ -2,11 +2,12 @@
 //   전송 공급자(Web3Forms / 자체 접수 API)는 assets/js/contact/transport.js 에 있고, 어느 쪽을 쓸지는 contact/config.js 가 정한다.
 //   · 한 번의 제출은 공급자 하나로만 보낸다. 실패·시간초과 시 다른 공급자로 자동 우회하지 않는다.
 //   · 문의 참조번호 SR-YYMMDD-XXXX: 브라우저가 만든 고객 안내용 번호(폼 세션당 1개, 서버 접수번호 아님).
-//   · 요청 식별자: 32자리 무작위 값. 같은 내용을 재시도하면 같은 값, 내용이 바뀌면 새 값 (서버 멱등 처리용).
+//   · 요청 식별자: 32자리 무작위 값. 같은 내용을 재시도하면 같은 값 + 최초 전송 본문 스냅샷 그대로(submittedAt·consent.at 포함), 내용이 바뀌면 새 값 (서버 멱등 처리용).
+//     식별자·스냅샷은 페이지 수명 동안 메모리에만 있다. 새로고침·탭 종료 후의 재전송은 새 요청이며 중복 방지를 보장하지 않는다.
 //   · 성공 표시는 공급자가 저장(접수)을 확인한 응답을 받은 뒤에만. 서버 접수번호는 접수 API 응답에 있을 때만 보여 준다.
 //   · 실패 시 입력값은 그대로 둔다. 개인정보는 URL·콘솔·localStorage 에 남기지 않는다.
 import { INTAKE_CONFIG, resolveProvider } from '../contact/config.js';
-import { send, newRequestId, contentHash } from '../contact/transport.js';
+import { send, contentHash, prepareSubmission } from '../contact/transport.js';
 
 const reduce = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
 
@@ -72,7 +73,7 @@ if (af) {
   const refInput = document.getElementById('fldRef'), reqInput = document.getElementById('fldReq');
   const okBox = document.getElementById('formOk'), okRef = document.getElementById('formOkRef'), okTitle = document.getElementById('formOkTitle'), okBody = document.getElementById('formOkBody'), okIntake = document.getElementById('formOkIntake');
   const TEL = '063-544-8142';
-  let ref = null, inFlight = false, requestId = null, lastHash = null;
+  let ref = null, inFlight = false, snap = null;   // snap: { hash, requestId, payload } — 같은 내용 재시도용 스냅샷
   const LABEL = { '담당자': '담당자 성함', '연락처': '연락처', '사업장 주소': '사업장 주소', '개인정보 수집·이용 동의': '개인정보 수집·이용 동의' };
 
   function setStatus(kind, html) { if (!status) return; status.className = 'form-status' + (kind ? ' ' + kind : ''); status.innerHTML = html; status.hidden = !html; }
@@ -152,7 +153,8 @@ if (af) {
     const fields = Object.fromEntries(fd);
     const content = { ...fields }; for (const k of ['access_key', 'subject', 'from_name', '문의 참조번호', '요청 식별자']) delete content[k];
     const hash = await contentHash(content);
-    if (!requestId || hash !== lastHash) { requestId = newRequestId(); lastHash = hash; }
+    snap = prepareSubmission(snap, hash);           // 같은 내용 → 같은 식별자·같은 본문, 바뀐 내용 → 새 식별자
+    const requestId = snap.requestId;
     if (reqInput) reqInput.value = requestId;
     fields['요청 식별자'] = requestId;
 
@@ -167,7 +169,8 @@ if (af) {
     btn.textContent = '전송 중…';
     setStatus('busy', `전송 중입니다. 잠시만 기다려 주세요. ${refLine()}`);
 
-    const payload = route.provider === 'intake' ? buildInquiry(fields, ref, requestId, route) : fields;
+    if (!snap.payload || snap.payload.provider !== route.provider) snap.payload = { provider: route.provider, body: route.provider === 'intake' ? buildInquiry(fields, ref, requestId, route) : fields };
+    const payload = snap.payload.body;              // 재시도는 최초 전송 본문 스냅샷을 그대로 보낸다
     const outcome = await send(route, payload, { timeoutMs: INTAKE_CONFIG.timeoutMs });
 
     if (outcome.kind === 'ok') { showSuccess(outcome); inFlight = false; return; }

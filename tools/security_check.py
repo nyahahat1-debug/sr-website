@@ -116,8 +116,17 @@ def check_market():
             pr += [f'carbon.json: {x}' for x in cc.validate(json.load(io.open(cb, encoding='utf-8')))[:10]]
         except Exception as e:
             pr.append(f'carbon.json 검사 실패: {e}')
+    def legacy(path, name):
+        # 옛(v1) 공개 파일: 공개 동의 플래그·schemaVersion 이 없다. 수집기가 더 이상 만들지 않으며 브라우저도 표시하지 않는다.
+        # 다음 수집 실행에서 비공개 안전 JSON 으로 교체되므로 여기서는 실패가 아니라 경고로 알린다 (저장소 정리는 별도 절차).
+        try: d = json.load(io.open(path, encoding='utf-8'))
+        except Exception: return False
+        if isinstance(d, dict) and 'schemaVersion' not in d and 'publish' not in d and not d.get('withheld'):
+            print(f'  [경고] {name}: 옛(v1) 공개 파일 — 공개 동의 플래그 없음. 브라우저에 표시되지 않고 다음 수집 실행에서 교체됨. 저장소·이력 정리는 별도 절차 (docs/handoff/GENERATION_DATA_CONTRACT.md 4장)')
+            return True
+        return False
     hy = os.path.join(ROOT, 'assets', 'data', 'hyosung-generation.json')
-    if os.path.exists(hy):
+    if os.path.exists(hy) and not legacy(hy, 'hyosung-generation.json'):
         try:
             spec = importlib.util.spec_from_file_location('qhub_collect', os.path.join(ROOT, 'tools', 'qhub_collect.py'))
             qc = importlib.util.module_from_spec(spec); spec.loader.exec_module(qc)
@@ -125,7 +134,7 @@ def check_market():
         except Exception as e:
             pr.append(f'hyosung-generation.json 검사 실패: {e}')
     g = os.path.join(ROOT, 'assets', 'data', 'generation.json')
-    if os.path.exists(g):
+    if os.path.exists(g) and not legacy(g, 'generation.json'):
         try:
             spec = importlib.util.spec_from_file_location('generation_collect', os.path.join(ROOT, 'tools', 'generation_collect.py'))
             gc = importlib.util.module_from_spec(spec); spec.loader.exec_module(gc)

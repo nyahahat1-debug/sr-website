@@ -1,5 +1,5 @@
 {
-  "_설명": "HI SMART(현대에너지솔루션) 모니터링에서 홈페이지에 보여줄 현장. id/match 는 포털 현장 하나, ids/matches 는 여러 현장을 한 카드로 합산. match 는 포털 현장명에 포함된 글자. capacityKw 는 홈페이지에 표기할 용량(모듈 기준) — 비우면 포털(인버터) 용량을 쓴다. page 는 홈페이지 상세 페이지. publish: 공개 동의 상태 — \"granted\"(발주처 공개 동의 확인) / \"denied\"(공개 금지·철회: 수집기가 공개 JSON 에서 제외) / \"pending\"(확인 대기: 기존 공개 상태 유지, 동의로 간주하지 않음). 필드가 없으면 pending 과 같이 취급하고 경고를 낸다. collector: \"qhub\" 항목은 tools/qhub_collect.py 가 읽는다.",
+  "_설명": "HI SMART(현대에너지솔루션) 모니터링에서 홈페이지에 보여줄 현장. id/match 는 포털 현장 하나, ids/matches 는 여러 현장을 한 카드로 합산. match 는 포털 현장명에 포함된 글자. capacityKw 는 홈페이지에 표기할 용량(모듈 기준) — 비우면 포털(인버터) 용량을 쓴다. page 는 홈페이지 상세 페이지. publish: 공개 동의 상태 — \"granted\"(발주처 공개 동의 확인) / \"denied\"(공개 금지·철회: 수집기가 공개 JSON 에서 제외) / \"pending\"(확인 대기). **granted 만 공개 JSON 에 실린다.** pending·denied·누락·알 수 없는 값은 모두 제외. publish.fields 는 공개 파일에 실을 필드 허용 목록(없는 키는 출력하지 않음). note 는 내부 메모로 공개 파일에 실리지 않는다. collector: \"qhub\" 항목은 tools/qhub_collect.py 가 읽는다.",
   "sites": [
     {
       "id": "M5268",
@@ -11,16 +11,30 @@
       "publish": {
         "status": "pending",
         "fields": [
+          "id",
+          "ids",
+          "name",
+          "portalName",
+          "label",
+          "sido",
+          "sigu",
+          "capacityKw",
+          "portalCapacityKw",
           "nowKw",
           "todayKwh",
+          "todayHours",
           "yesterdayKwh",
           "monthKwh",
+          "monthHours",
           "prevMonthKwh",
           "totalKwh",
+          "inverters",
+          "running",
+          "status",
+          "comm",
           "daySeries",
           "monthSeries",
-          "yearSeries",
-          "capacityKw"
+          "yearSeries"
         ],
         "note": "발주처 공개 동의 확인 대기 (1단계 보고서 4-7)"
       }
@@ -39,16 +53,30 @@
       "publish": {
         "status": "pending",
         "fields": [
+          "id",
+          "ids",
+          "name",
+          "portalName",
+          "label",
+          "sido",
+          "sigu",
+          "capacityKw",
+          "portalCapacityKw",
           "nowKw",
           "todayKwh",
+          "todayHours",
           "yesterdayKwh",
           "monthKwh",
+          "monthHours",
           "prevMonthKwh",
           "totalKwh",
+          "inverters",
+          "running",
+          "status",
+          "comm",
           "daySeries",
           "monthSeries",
-          "yearSeries",
-          "capacityKw"
+          "yearSeries"
         ],
         "note": "발주처 공개 동의 확인 대기 (1단계 보고서 4-7)"
       }
@@ -62,16 +90,30 @@
       "publish": {
         "status": "pending",
         "fields": [
+          "id",
+          "ids",
+          "name",
+          "portalName",
+          "label",
+          "sido",
+          "sigu",
+          "capacityKw",
+          "portalCapacityKw",
           "nowKw",
           "todayKwh",
+          "todayHours",
           "yesterdayKwh",
           "monthKwh",
+          "monthHours",
           "prevMonthKwh",
           "totalKwh",
+          "inverters",
+          "running",
+          "status",
+          "comm",
           "daySeries",
           "monthSeries",
-          "yearSeries",
-          "capacityKw"
+          "yearSeries"
         ],
         "note": "발주처 공개 동의 확인 대기 (1단계 보고서 4-7)"
       }
@@ -85,17 +127,16 @@
       "publish": {
         "status": "pending",
         "fields": [
-          "nowKw",
-          "todayKwh",
-          "monthKwh",
-          "yearKwh",
-          "daySeries",
-          "months",
-          "capacityKw"
+          "site",
+          "capacityKw",
+          "portalCapacityKw",
+          "tariffId",
+          "live",
+          "months"
         ],
         "note": "발주처 공개 동의 확인 대기 (1단계 보고서 4-7)"
       }
     }
   ],
-  "_publishNote": "2026-10-29 기준 네 현장 모두 발주처 공개 동의가 확인되지 않아 pending. 동의가 확인되면 granted 로, 철회·거부면 denied 로 바꾼다 (docs/handoff/GENERATION_DATA_CONTRACT.md 4장)."
+  "_publishNote": "2026-10-29 기준 네 현장 모두 발주처 공개 동의가 확인되지 않아 pending → 공개 JSON 은 비공개 안전 파일(withheld)로 교체된다. 동의가 확인되면 granted 로, 철회·거부면 denied 로 바꾼다 (docs/handoff/GENERATION_DATA_CONTRACT.md 4장)."
 }

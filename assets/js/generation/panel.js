@@ -11,7 +11,7 @@
 // 자료 계약 v2 (2026-10-29, docs/handoff/GENERATION_DATA_CONTRACT.md) — 옛 자료(v1: updated 만 있음)와 호환:
 //   · collectedAt(수집 시각) 이 없으면 updated 를 쓴다. observedAt(포털 관측 시각) 은 자료에 있을 때만 "관측 MM.DD HH:MM" 으로 보여 준다 — 없다고 만들어 쓰지 않는다.
 //   · quality.status: ok | stale | comm_error | partial | unknown — 수집기가 판정한 값이 있으면 지연·통신 이상 판정에 우선 반영한다.
-//   · publish.allowed === false 인 현장은 표시하지 않는다 (공개 통제는 수집 단계에서 먼저 걸리고, 여기서는 2차 방어).
+//   · publish.status === 'granted' && allowed === true 인 현장만 표시한다. 동의 플래그가 없는 옛 자료(v1)·pending·withheld 는 표시하지 않는다 (공개 통제는 수집 단계가 1차, 여기는 2차 방어).
 // ─────────────────────────────────────────────────────────────
 const CSS = `
 .gn{--gn-ink:#0D1B2A;--gn-muted:#546E7A;--gn-line:#C8D8E8;--gn-sky:#0077B6;--gn-sun:#E8A317;--gn-bg:#F7FAFC;font-family:'Pretendard Variable','Pretendard',system-ui,sans-serif;color:var(--gn-ink)}
@@ -117,7 +117,7 @@ function tile(k, v, unit) { return h('div', { class: 'gn-t' }, h('div', { class:
 export async function loadAllSites(base = 'assets/data/') {
   const get = u => fetch(base + u, { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).then(j => (j && typeof j === 'object') ? j : null).catch(() => null);
   const [g, hy] = await Promise.all([get('generation.json'), get('hyosung-generation.json')]);
-  const allowed = (s, root) => { const p = (s && s.publish) || (root && root.publish); return !(p && typeof p === 'object' && p.allowed === false); };   // 공개 금지 플래그 → 표시 안 함
+  const allowed = (s, root) => { const p = (s && s.publish) || (root && root.publish); return !!(p && typeof p === 'object' && p.status === 'granted' && p.allowed === true); };   // granted 만 표시 — 동의 플래그 없는 옛 자료(v1)·pending·withheld 는 표시하지 않는다 (1차 통제는 수집기)
   const sites = (g && !g.sample && Array.isArray(g.sites)) ? g.sites.filter(s => s && typeof s === 'object' && allowed(s, g)).map(s => ({ ...s, updated: s.collectedAt || s.updated || g.collectedAt || g.updated, observedAt: typeof s.observedAt === 'string' ? s.observedAt : null, quality: s.quality && typeof s.quality === 'object' ? s.quality : null })) : [];
   const L = hy && hy.live && typeof hy.live === 'object' ? hy.live : null;
   if (L && (num(L.todayKwh) != null || num(L.nowKw) != null) && allowed(hy, null)) {

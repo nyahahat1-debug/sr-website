@@ -77,6 +77,7 @@ const submit = p => p.evaluate(() => document.getElementById('analysisForm').req
     ok(calls.w3.length === 0, '시간초과 후 Web3Forms 자동 우회 없음');
     await submit(p); await p.waitForTimeout(700);
     ok(calls.intake.length === 2 && calls.intake[1].body.requestId === calls.intake[0].body.requestId && calls.intake[1].body.clientRef === calls.intake[0].body.clientRef, '재시도: 같은 요청 식별자·같은 참조번호');
+    ok(JSON.stringify(calls.intake[1].body) === JSON.stringify(calls.intake[0].body) && calls.intake[1].body.submittedAt === calls.intake[0].body.submittedAt && calls.intake[1].body.consent.at === calls.intake[0].body.consent.at, '재시도 본문 = 최초 전송 스냅샷 (submittedAt·consent.at 포함 동일)');
     ok(await okVisible(p) && (await p.$eval('#formOkIntake', e => e.textContent)).includes('IN-2026-000777') && (await p.$eval('#formOkIntake', e => e.textContent)).includes('이미 접수'), 'replay 응답 → 접수 완료(이미 접수됨 안내)');
     await shot(p, 'intake-timeout-retry'); await p.close();
   }
@@ -87,6 +88,7 @@ const submit = p => p.evaluate(() => document.getElementById('analysisForm').req
     ok((await statusText(p)).includes('오류') && (await p.$eval('.form-submit', e => e.textContent)) === '다시 전송', '5xx → 서버 오류 안내 + 다시 전송');
     await submit(p); await p.waitForTimeout(600);   // 같은 내용 재시도
     ok(calls.intake.length === 2 && calls.intake[1].body.requestId === calls.intake[0].body.requestId, '같은 내용 재시도 = 같은 요청 식별자');
+    ok(JSON.stringify(calls.intake[1].body) === JSON.stringify(calls.intake[0].body), '5xx 뒤 같은 내용 재시도 본문도 동일');
     await p.close();
   }
   {
@@ -94,6 +96,16 @@ const submit = p => p.evaluate(() => document.getElementById('analysisForm').req
     await fillValid(p); await submit(p); await p.waitForTimeout(600);
     await p.fill('#fld-7', '내용을 바꿨습니다'); await submit(p); await p.waitForTimeout(600);
     ok(calls.intake.length === 2 && calls.intake[1].body.requestId !== calls.intake[0].body.requestId && calls.intake[1].body.clientRef === calls.intake[0].body.clientRef, '내용 변경 → 새 요청 식별자, 참조번호는 유지');
+    ok(calls.intake[1].body.message === '내용을 바꿨습니다' && calls.intake[1].body.submittedAt >= calls.intake[0].body.submittedAt, '변경된 내용으로 새 본문');
+    await p.close();
+  }
+  {
+    // Web3Forms 모드 재시도도 같은 식별자·같은 본문
+    const { p, calls } = await open('contact.html', { w3: (r, n) => n === 1 ? r.fulfill({ status: 500, body: '' }) : r.fulfill({ status: 200, contentType: 'application/json', body: '{"success":true}' }) });
+    await fillValid(p); await submit(p); await p.waitForTimeout(600);
+    ok((await p.$eval('.form-submit', e => e.textContent)) === '다시 전송', 'Web3Forms 5xx → 다시 전송');
+    await submit(p); await p.waitForTimeout(600);
+    ok(calls.w3.length === 2 && JSON.stringify(calls.w3[1].body) === JSON.stringify(calls.w3[0].body) && calls.intake.length === 0, 'Web3Forms 재시도: 같은 식별자·같은 본문, 접수 API 호출 없음');
     await p.close();
   }
   for (const [name, status, body, expect] of [
@@ -195,7 +207,9 @@ const submit = p => p.evaluate(() => document.getElementById('analysisForm').req
     await shot(p, 'widget-' + name); await p.close();
   }
   const fresh = (d, fn) => { const x = JSON.parse(JSON.stringify(d)); const now = iso(Date.now() - 20 * 60000); x.updated = now; if (x.collectedAt) x.collectedAt = now; for (const s of x.sites) { s.updated = now; if (s.collectedAt) s.collectedAt = now; } return fn ? fn(x) || x : x; };
-  await widget('v1-current', 'case-naewoon.html', fresh(v1), null, async (t, v, e) => ok(v && t.includes('수집 ') && !t.includes('관측') && e.length === 0, '옛 자료(v1): 수집 시각만, 관측 시각 표시 없음, 오류 없음'));
+  await widget('v1-current', 'case-naewoon.html', fresh(v1), null, async (t, v, e) => ok(!v && e.length === 0, '옛 자료(v1, 동의 플래그 없음): 표시하지 않음, 오류 없음'));
+  await widget('v2-withheld', 'case-naewoon.html', { sample: false, schemaVersion: 2, withheld: true, updated: iso(Date.now()), sites: [], totals: { sites: 0 }, errors: [] }, null, async (t, v, e) => ok(!v && e.length === 0, '비공개 안전 JSON(withheld): 표시하지 않음, 오류 없음'));
+  await widget('v2-granted', 'case-naewoon.html', fresh(v2), null, async (t, v) => ok(v && t.includes('수집 '), 'granted + allowed → 표시'));
   await widget('v2-observed', 'case-naewoon.html', fresh(v2, x => { x.sites[0].observedAt = iso(Date.now() - 25 * 60000); }), null, async (t, v) => ok(v && t.includes('수집 ') && t.includes('관측 ') && t.includes('발전 중') && t.includes('123.4'), 'v2: 수집·관측 시각 함께 표시 + 발전 중'));
   await widget('v2-no-observed', 'case-naewoon.html', fresh(v2, x => { x.sites[0].observedAt = null; }), null, async (t, v) => ok(v && !t.includes('관측'), 'v2 observedAt null → 관측 시각 만들어 쓰지 않음'));
   await widget('v2-quality-stale', 'case-naewoon.html', fresh(v2, x => { x.sites[0].quality = { status: 'stale', note: '포털 값 3시간째 동일' }; }), null, async (t, v) => ok(v && t.includes('자료 지연'), 'quality.status=stale → 수집 시각이 최신이어도 자료 지연'));
@@ -203,11 +217,15 @@ const submit = p => p.evaluate(() => document.getElementById('analysisForm').req
   await widget('v2-quality-partial', 'case-naewoon.html', fresh(v2, x => { x.sites[0].quality = { status: 'partial', note: null }; }), null, async (t, v) => ok(v && t.includes('일부') && t.includes('누락'), 'quality.status=partial → 일부 누락 표시'));
   await widget('v2-publish-denied', 'case-naewoon.html', fresh(v2, x => { x.sites[0].publish = { status: 'denied', allowed: false }; }), null, async (t, v, e) => ok(!v && e.length === 0, 'publish.allowed=false → 해당 현장 위젯 숨김(2차 방어), 오류 없음'));
   await widget('v2-publish-other-ok', 'case-pga.html', fresh(v2, x => { x.sites[0].publish = { status: 'denied', allowed: false }; }), null, async (t, v) => ok(v, '다른 현장(pga)은 그대로 표시'));
-  await widget('v2-publish-pending', 'case-naewoon.html', fresh(v2, x => { x.sites[0].publish = { status: 'pending', allowed: null }; }), null, async (t, v) => ok(v && !t.includes('동의') && !t.includes('pending'), 'pending → 표시하되 공개 화면에 동의 상태 문구는 내지 않음'));
+  await widget('v2-publish-pending', 'case-naewoon.html', fresh(v2, x => { x.sites[0].publish = { status: 'pending', allowed: null }; }), null, async (t, v) => ok(!v, 'pending → 표시하지 않음'));
+  await widget('v2-publish-granted-noallowed', 'case-naewoon.html', fresh(v2, x => { x.sites[0].publish = { status: 'granted' }; }), null, async (t, v) => ok(!v, 'granted 인데 allowed 플래그 없음 → 표시하지 않음'));
   const hyFresh = fn => { const x = JSON.parse(JSON.stringify(hy2)); x.updated = x.collectedAt = iso(Date.now() - 20 * 60000); if (fn) fn(x); return x; };
   await widget('hy-v2-observed', 'case-detail.html', fresh(v2), hyFresh(x => { x.live.observedAt = iso(Date.now() - 22 * 60000); }), async (t, v) => ok(v && t.includes('관측 ') && t.includes('456.7'), '효성 v2: 관측 시각 표시'));
   await widget('hy-v2-denied', 'case-detail.html', fresh(v2), hyFresh(x => { x.publish = { status: 'denied', allowed: false }; }), async (t, v, e) => ok(!v && e.length === 0, '효성 publish.allowed=false → 위젯 숨김'));
   await widget('hy-v2-comm', 'case-detail.html', fresh(v2), hyFresh(x => { x.quality = { status: 'comm_error' }; }), async (t, v) => ok(v && t.includes('포털 통신 이상'), '효성 quality comm_error → 통신 이상'));
+  await widget('hy-v1', 'case-detail.html', fresh(v2), (() => { const x = JSON.parse(JSON.stringify(hy2)); delete x.publish; x.updated = iso(Date.now()); return x; })(), async (t, v, e, p) => ok(!v && (await p.$eval('.hy-effect', el => el.hidden)) && e.length === 0, '효성 v1(동의 플래그 없음) → 위젯·월별 표 모두 숨김'));
+  await widget('hy-withheld', 'case-detail.html', fresh(v2), { schemaVersion: 2, withheld: true, updated: iso(Date.now()), publish: { status: 'withheld', allowed: false, fields: [] }, live: null, months: [] }, async (t, v, e, p) => ok(!v && (await p.$eval('.hy-effect', el => el.hidden)) && e.length === 0, '효성 withheld → 위젯·월별 표 숨김, 오류 없음'));
+  await widget('hy-granted-table', 'case-detail.html', fresh(v2), hyFresh(), async (t, v, e, p) => ok(v && !(await p.$eval('.hy-effect', el => el.hidden)), '효성 granted → 위젯 + 월별 표 표시'));
 
   console.log('D. 효성 사례 — 기금 요율 재계산 표시');
   {
@@ -218,7 +236,8 @@ const submit = p => p.evaluate(() => document.getElementById('analysisForm').req
     ok(r2 === '3,676만 원', '성과 요약에도 재계산값');
     const note = await p.$eval('.hy-note', e => e.textContent).catch(() => '');
     const body = await p.evaluate(() => document.body.innerText);
-    ok(body.includes('분석 보고서 값으로 기금 요율 3.7%') && body.includes('2025-07-01 2.7%'), '각주에 요율 적용 기준·시행일 설명');
+    ok(body.includes('① 분석 보고서값') && body.includes('② 가정별 재계산값') && body.includes('③ 월별 추정값') && body.includes('정부 발표') && body.includes('2025-07-01부터 2.7%'), '보고서값·가정별 재계산값·월별 추정값 구분 + 요율 출처(정부 발표)');
+    ok(!/현행 기금|현행 요율/.test(body), '기금 요율을 "현행"으로 단정하지 않음');
     await shot(p, 'hyosung-recalc'); await p.close();
   }
 
@@ -236,7 +255,11 @@ const submit = p => p.evaluate(() => document.getElementById('analysisForm').req
     const p2 = await ctx.newPage();
     await p2.goto(BASE + 'business.html#rational'); await p2.waitForTimeout(600);
     const bb = await p2.evaluate(() => document.body.innerText);
-    ok(!bb.includes('20~30') && bb.includes('약 31%') && bb.includes('분석 사례 1건'), '사업영역: 20~30% → 확인된 사례(약 31%, 1건)로');
+    ok(!bb.includes('20~30') && bb.includes('예상 약 31%') && bb.includes('시공 전 분석 사례 1건'), '사업영역: 예상 절감률 약 31% · 시공 전 분석 사례 1건');
+    await p2.goto(BASE + 'case-suejeon.html'); await p2.waitForTimeout(600);
+    const sj = await p2.evaluate(() => document.body.innerText);
+    ok(sj.includes('예상 절감률 약 31%') && sj.includes('시공 전 분석') && !/31% 절감 · 최근 12개월 실측/.test(sj), '완주 사례: 예상 절감률·시공 전 분석으로 표기, 실측 절감률 표현 없음');
+    ok(!body.includes('실측 기준 약 31%'), '메인에 실측 절감률 표현 없음');
     await p2.close();
   }
   {

@@ -127,10 +127,10 @@ async function fillValid(page) {
 
   // ── C. 발전 위젯 (가짜 JSON)
   console.log('C. 발전 위젯');
-  const base = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'assets', 'data', 'generation.json'), 'utf8'));
+  const base = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'generation_v2.json'), 'utf8'));   // 공개 동의(granted) 가 붙은 v2 fixture — 공개 파일(v1·withheld)은 표시되지 않으므로
   async function widget(name, mutate, check) {
     const p = await ctx.newPage();
-    await p.route('**/assets/data/generation.json', route => { const d = mutate(JSON.parse(JSON.stringify(base))); route.fulfill({ status: 200, contentType: 'application/json', body: typeof d === 'string' ? d : JSON.stringify(d) }); });
+    await p.route('**/assets/data/generation.json', route => { const b0 = JSON.parse(JSON.stringify(base)); delete b0.collectedAt; for (const s of b0.sites) { delete s.collectedAt; s.observedAt = null; } const d = mutate(b0); route.fulfill({ status: 200, contentType: 'application/json', body: typeof d === 'string' ? d : JSON.stringify(d) }); });
     await p.route('**/assets/data/hyosung-generation.json', route => route.fulfill({ status: 404, body: '' }));
     await p.goto(BASE + 'case-naewoon.html'); await p.waitForTimeout(900);
     const txt = await p.$eval('#genSite', e => e.textContent).catch(() => null);
@@ -148,7 +148,7 @@ async function fillValid(page) {
     async (t, v) => { const h = new Date().getHours(); const night = h < 6 || h >= 20; ok(v && (night ? t.includes('야간 대기') : t.includes('대기 (출력 0')), `출력 0 (${night ? '야간' : '주간'}) 구분 표시`); });
   await widget('comm-error', d => { d.updated = iso(Date.now() - 20 * 60000); d.sites[0].updated = d.updated; d.sites[0].comm = 'Error'; return d; },
     async (t, v) => ok(v && t.includes('포털 통신 이상'), 'comm=Error → 포털 통신 이상 표시'));
-  await widget('no-updated', d => { delete d.updated; delete d.sites[0].updated; return d; },
+  await widget('no-updated', d => { delete d.updated; delete d.sites[0].updated; delete d.collectedAt; delete d.sites[0].collectedAt; delete d.sites[0].observedAt; return d; },
     async (t, v) => ok(v && t.includes('수집 시각 정보 없음'), 'updated 없음 → 시각 정보 없음'));
   await widget('bad-types', d => { d.sites[0].nowKw = 'abc'; d.sites[0].todayKwh = null; d.sites[0].daySeries = { t: null, kw: 'x' }; return d; },
     async (t, v) => ok(v && t.includes('—') && t.includes('오늘 계측값 없음'), '잘못된 타입 → — 와 계측값 없음, 페이지 정상'));

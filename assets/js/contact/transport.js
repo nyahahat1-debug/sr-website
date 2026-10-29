@@ -33,6 +33,16 @@ export async function contentHash(obj) {
   return 'fnv:' + h1.toString(16).padStart(8, '0') + h2.toString(16).padStart(8, '0');
 }
 
+/**
+ * 제출 준비: 내용 해시가 이전과 같으면 같은 요청 식별자·같은 본문 스냅샷을 다시 쓴다(submittedAt·consent.at 포함 그대로).
+ * 내용이 바뀌면 새 식별자를 발급하고 스냅샷을 비운다. 식별자·스냅샷은 메모리(페이지 수명)에만 있다 — 새로고침·탭 종료 후에는 새 식별자.
+ * prev: { hash, requestId, payload } | null
+ */
+export function prepareSubmission(prev, hash) {
+  if (prev && prev.hash === hash && prev.requestId) return { hash, requestId: prev.requestId, payload: prev.payload || null, reused: true };
+  return { hash, requestId: newRequestId(), payload: null, reused: false };
+}
+
 async function postJson(url, body, headers, signal) {
   const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...headers }, body: JSON.stringify(body), signal, credentials: 'omit' });
   let data = null; try { data = await res.json(); } catch (e) { data = null; }
@@ -61,7 +71,7 @@ export async function sendIntake(url, inquiry, signal) {
   if (res.ok) return { kind: 'server_error', provider: 'intake', status: res.status, message: '저장 확인(접수번호) 없는 응답' };   // 2xx 라도 접수번호가 없으면 저장을 확인한 것이 아니다
   if (res.status === 400 || res.status === 422) return { kind: 'invalid', provider: 'intake', status: res.status, fields: Array.isArray(d.fields) ? d.fields.filter(x => typeof x === 'string').slice(0, 10) : [], message: str(d.message) };
   if (res.status === 409) return { kind: 'conflict', provider: 'intake', status: 409, message: str(d.message) };
-  if (res.status === 429) return { kind: 'rate_limited', provider: 'intake', status: 429, retryAfter: Number(res.headers.get('Retry-After')) || null };
+  if (res.status === 429) return { kind: 'rate_limited', provider: 'intake', status: 429, retryAfter: Number(res.headers.get('Retry-After')) || null };   // 교차 origin 에서는 서버가 Access-Control-Expose-Headers: Retry-After 를 내야 읽힌다
   if (res.status >= 500) return { kind: 'server_error', provider: 'intake', status: res.status };
   return { kind: 'rejected', provider: 'intake', status: res.status, message: str(d.message) };
 }
