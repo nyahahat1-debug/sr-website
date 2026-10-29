@@ -1,0 +1,22 @@
+{
+  "schema": "sr-intake/1",
+  "requestId": "3f2a9c1e8b7d4650a1b2c3d4e5f60718",
+  "clientRef": "SR-261030-K7PQ",
+  "submittedAt": "2026-10-30T00:12:30.000Z",
+  "source": { "page": "contact.html", "site": "nyahahat1-debug.github.io", "dev": false },
+  "topic": { "key": "self", "label": "자가소비 태양광" },
+  "contact": { "name": "시험 담당자", "phone": "010-0000-0000" },
+  "site": { "address": "전북 전주시 (시험·대략)", "type": "공장", "monthlyBillBand": "300~1,000만원" },
+  "message": "시험 문의입니다(합성 자료). 지붕 면적 약 2,000㎡, 계약전력 500kW. 자가소비 검토 중입니다.",
+  "consent": { "privacy": true, "policyVersion": "v1.0", "at": "2026-10-30T00:12:28.000Z" },
+  "calc": {
+    "schema": "sr-calc/1", "model": "sr-econ/2026-10-29", "computedAt": "2026-10-30T00:10:00.000Z",
+    "mode": "self", "capacityKw": 500, "tariffId": "ie-ha1",
+    "assumptions": { "yieldKwhPerKw": 1300, "degradationRate": 0.5, "selfUseRatio": 85, "priceKrwPerKwh": 150, "capexKrwPerKw": 1300000, "lifetimeYears": 20 },
+    "assumptionSource": { "edited": 0, "demo": true },
+    "market": { "basis": "avg365", "updated": "2026-10-29", "applied": ["smpKrwPerKwh", "recKrwPerKwh"] },
+    "result": { "year1GenKwh": 650000, "year1SavingKrw": 102460000, "capexKrw": 650000000, "paybackYears": 5.2 },
+    "disclaimer": "홈페이지 계산기의 참고용 추정값 · 확정 견적·보장 수익 아님"
+  },
+  "calcSummary": "[경제성 계산기 결과] 자가소비 · 500 kW · 회수 5.2년"
+}

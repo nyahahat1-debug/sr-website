@@ -193,8 +193,31 @@ def check_misc():
     if os.path.exists(os.path.join(ROOT, '.nojekyll')): pr.append('.nojekyll 이 있으면 _config.yml 제외 목록이 무시됨')
     return pr
 
+FORBIDDEN_INTAKE_HOSTS = ('localhost', '127.0.0.1', '[::1]', 'tail2b9209', '.ts.net', '3.34.100.150', '100.105.244.22', 'example.com')
+
+def check_intake_config():
+    """문의 접수 API 설정 일관성 — 운영 전환 때 주소·CSP·공급자가 어긋나면 배포를 막는다.
+    · provider 'intake' 이면 intakeApiUrl 이 있어야 한다(비어 있으면 Web3Forms 로 가지만 설정이 모순)
+    · intakeApiUrl 은 https 절대 주소, 경로는 계약의 /api/public/inquiries, 로컬·Tailscale·공인 IP·예시 호스트 금지(홈페이지 방문자가 닿을 수 있는 공개 진입점만)
+    · 주소가 있으면 contact.html CSP connect-src 에 그 origin 이 있어야 한다(security_meta --write 가 넣는다)"""
+    pr = []
+    cfg = SM.intake_config(); prov, url = cfg['provider'], cfg['intakeApiUrl']
+    if prov not in ('web3forms', 'intake'): pr.append(f"contact/config.js: provider 값 '{prov}' 은 web3forms|intake 가 아님")
+    if prov == 'intake' and not url: pr.append("contact/config.js: provider 'intake' 인데 intakeApiUrl 이 비어 있음 (주소 확정 전에는 provider 를 web3forms 로 둔다)")
+    if url:
+        if not url.startswith('https://'): pr.append('contact/config.js: intakeApiUrl 은 https:// 절대 주소여야 함')
+        low = url.lower()
+        for h in FORBIDDEN_INTAKE_HOSTS:
+            if h in low: pr.append(f'contact/config.js: intakeApiUrl 에 공개 진입점이 아닌 호스트({h})가 있음')
+        if not low.split('?')[0].rstrip('/').endswith('/api/public/inquiries'): pr.append('contact/config.js: intakeApiUrl 경로는 계약의 /api/public/inquiries 여야 함')
+        origin = SM.intake_origin()
+        html = io.open(os.path.join(ROOT, 'contact.html'), encoding='utf-8').read()
+        m = SM.META_RE.search(html)
+        if not origin or not m or origin not in m.group(1): pr.append('contact.html: CSP connect-src 에 접수 API origin 이 없음 (python tools/security_meta.py --write)')
+    return pr
+
 def main(argv):
-    groups = [('페이지', check_pages), ('저장소', check_repo), ('워크플로', check_workflows), ('시세 데이터', check_market), ('기타', check_misc)]
+    groups = [('페이지', check_pages), ('저장소', check_repo), ('워크플로', check_workflows), ('시세 데이터', check_market), ('기타', check_misc), ('문의 접수 설정', check_intake_config)]
     total = 0
     for title, fn in groups:
         pr = fn(); total += len(pr)

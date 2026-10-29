@@ -48,6 +48,24 @@ SRI = {
     'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css': 'sha384-ei/b2Mz3F5J8nqTvpKS89CkzDCuD7Cc+/F+OsaPUKItzHgLNKnGq3rjtYq/B7RnO',
 }
 
+CONFIG_JS = os.path.join(ROOT, 'assets', 'js', 'contact', 'config.js')
+_CFG_RE = re.compile(r"^\s*(provider|intakeApiUrl)\s*:\s*'([^']*)'", re.M)
+
+def intake_config():
+    """assets/js/contact/config.js 의 provider · intakeApiUrl (문자열 리터럴만 읽는다)"""
+    try: src = io.open(CONFIG_JS, encoding='utf-8').read()
+    except OSError: return {'provider': '', 'intakeApiUrl': ''}
+    d = {'provider': '', 'intakeApiUrl': ''}
+    for k, v in _CFG_RE.findall(src):
+        if not d.get(k): d[k] = v.strip()
+    return d
+
+def intake_origin():
+    """접수 API 주소가 기입돼 있으면 그 origin (CSP connect-src 에 자동 추가). 비어 있으면 None — 주소를 만들어 넣지 않는다."""
+    url = intake_config()['intakeApiUrl']
+    m = re.match(r'^(https?://[^/?#]+)', url)
+    return m.group(1).lower() if m else None
+
 def pages():
     return sorted(f for f in (os.path.basename(x) for x in glob.glob(os.path.join(ROOT, '*.html'))) if f not in EXCLUDE)
 
@@ -59,6 +77,9 @@ def importmap_hashes(html):
 
 def build_policy(page, html):
     extra = EXTRA.get(page, {})
+    if page == 'contact.html':   # 접수 API 주소가 기입된 경우에만 그 origin 을 허용 (Web3Forms 는 원복을 위해 유지)
+        o = intake_origin()
+        if o: extra = {**extra, 'connect-src': list(extra.get('connect-src', [])) + [o]}
     parts = []
     for name, vals in BASE:
         vals = list(vals); add = list(extra.get(name, []))

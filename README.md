@@ -23,14 +23,14 @@
 - 검사: `node tools/model_test.mjs`(계산 모델), `NODE_PATH=<playwright-core> node tools/ui_tests.js`(폼·사전 선택·위젯, 로컬 서버 필요, 외부 전송 없음), `node tools/mobile_audit.js`(화면 점검).
 
 ## 문의 접수 API · 계산 조건 전달 · 발전 자료 계약 (2026-10-29 2단계 개선)
-- 문의 전송은 UI(`assets/js/pages/contact-main.js`)와 공급자 구현(`assets/js/contact/transport.js`)으로 나뉩니다. 어느 공급자를 쓸지는 `assets/js/contact/config.js` 가 정하며, 현재는 Web3Forms 입니다. 자체 접수 API 는 주소가 확정되면 `intakeApiUrl` 과 CSP(`tools/security_meta.py`)를 바꿔 켭니다. 한 번의 제출은 공급자 하나로만 보내고, 실패·시간초과 시 다른 공급자로 자동 우회하지 않습니다. 계약 초안: `docs/handoff/INTAKE_API_CONTRACT.md`(로컬 문서).
-- 요청 식별자(32자리 무작위)는 같은 내용을 재시도하면 같은 값, 내용이 바뀌면 새 값입니다. 서버 접수번호(접수 API 응답)와 브라우저 참조번호(`SR-YYMMDD-XXXX`)는 구분해 표시합니다.
+- 문의 전송은 UI(`assets/js/pages/contact-main.js`)와 공급자 구현(`assets/js/contact/transport.js`)으로 나뉩니다. 어느 공급자를 쓸지는 `assets/js/contact/config.js` 가 정하며, 현재는 Web3Forms 입니다. 자체 접수 API(서버 확정 계약 `sr-intake/1`, 2026-10-29)는 공개 주소가 확정되면 `intakeApiUrl` 에 적고 `python tools/security_meta.py --write` 로 CSP 를 갱신한 뒤, 배포 절차에 따라 `provider` 를 바꿔 켭니다(주소가 없으면 만들지 않습니다). 한 번의 제출은 공급자 하나로만 보내고, 실패·시간초과 시 다른 공급자로 자동 우회하지 않습니다. 계약·전환·원복 절차: `docs/handoff/INTAKE_API_CONTRACT.md` 11·12장(로컬 문서).
+- 요청 식별자(32자리 무작위)는 같은 내용을 재시도하면 같은 값, 내용이 바뀌면 새 값입니다. 서버 접수번호(`IQ-NNNNNN`, 접수 API 응답)와 브라우저 참조번호(`SR-YYMMDD-XXXX`)는 구분해 표시합니다. 폼의 연락처 형식·길이 제한은 서버 규칙과 같습니다(`tools/intake_rules.cjs`).
 - 계산기 → 문의 링크는 요약(`?calc=`)과 함께 구조화된 계산 조건(`?calcd=`, 개인정보 없음)을 넘깁니다. 문의 페이지는 같은 모델로 재계산해 일치할 때만 받고, 아니면 요약만 씁니다(`assets/js/economics/calc-transfer.js`).
 - 발전 자료 계약 v2(`collectedAt`·`observedAt`·`quality`·`publish`)는 `docs/handoff/GENERATION_DATA_CONTRACT.md` 에 있습니다. 현장별 공개 동의는 `tools/generation_sites.json` 의 `publish.status` 로 관리하며 **granted 인 현장만** 공개 JSON 에 실립니다(pending·denied·누락은 제외, `publish.fields` 가 필드 허용 목록). granted 현장이 없으면 수집기가 포털을 호출하지 않고 비공개 안전 JSON(`withheld`)으로 원자적으로 교체하고, 수집·검증 실패 시에도 기존 파일의 비공개 현장을 정리합니다. 브라우저는 granted 자료만 그립니다. 포털 관측 시각은 자료에 없으면 비워 둡니다.
 - 2026-10-29 기준 네 현장 모두 pending 이라, 배포 후 첫 수집 실행에서 두 공개 JSON 이 비공개 안전 JSON 으로 바뀌고 발전 위젯·효성 월별 표는 사라집니다. 동의가 확인된 현장만 granted 로 바꿉니다. 배포 대상 공개 JSON 은 이미 비공개 안전 JSON 으로 교체돼 있고, `python tools/security_check.py --ci` 가 동의 미확인 자료·옛 v1 파일이 남으면 실패해 배포를 막습니다. git 이력·캐시 정리는 별도 절차이며 배포 순서·원복은 `docs/handoff/DEPLOY_RUNBOOK_2026-10-29.md`(로컬 문서).
-- 효성 사례의 월 절감 3,709만 원은 분석 보고서 값(기금 3.7%)이고, 예시 월에 적용되는 현행 요율 2.7%로 재계산한 값을 함께 표시합니다. 수전합리화 "20~30%" 는 근거가 없어 제거하고 확인된 사례(약 31%, 1건)만 표기합니다.
-- 문의 재시도는 최초 전송 본문 스냅샷(요청 식별자·submittedAt 포함)을 그대로 다시 보내고, 의미 있는 입력이 바뀌면 새 식별자를 씁니다. 식별자는 페이지 수명 동안만 유지되며 새로고침 뒤의 재전송은 새 요청입니다. 서버 비교 규칙·CORS 는 `docs/handoff/INTAKE_API_CONTRACT.md` 4·6장.
-- 검사: `node tools/model_test.mjs`, `node tools/intake_contract_test.mjs`, `python tools/collector_test.py`(실제 파일로 공개 상태 전환 검사 포함), `NODE_PATH=<playwright-core> node tools/ui_tests_phase2.js`(로컬 서버 필요, 외부 전송 없음).
+- 효성 사례의 월 절감 3,709만 원은 분석 보고서 값(기금 3.7%)이고, 정부 발표 기준(2025-07~) 요율 2.7%로 재계산한 값을 가정별 재계산값으로 함께 표시합니다(시행령 조문 원문 미확인이라 '현행'이라 쓰지 않음). 수전합리화 "20~30%" 는 근거가 없어 제거하고 확인된 사례(약 31%, 1건)만 표기합니다.
+- 문의 재시도는 최초 전송 본문 스냅샷(요청 식별자·submittedAt 포함)을 그대로 다시 보내고, 의미 있는 입력이 바뀌면 새 식별자를 씁니다. 식별자는 페이지 수명 동안만 유지되므로 중복 방지(서버 replay)는 같은 화면에서 같은 식별자로 재시도할 때만 해당하고, 새로고침 뒤의 재전송은 새 문의가 될 수 있습니다(안내문도 그렇게 씁니다). 서버 정규화·해시·CORS 는 계약 3절.
+- 검사: `node tools/model_test.mjs`, `node tools/intake_contract_test.mjs`(서버 fixture 구조 `tools/fixtures/intake/`), `python tools/intake_config_test.py`(접수 설정·CSP), `python tools/collector_test.py`(실제 파일로 공개 상태 전환 검사 포함), `NODE_PATH=<playwright-core> node tools/ui_tests_phase2.js`(로컬 서버 필요, 외부 전송 없음).
 
 ## 보안 규칙
 - 모든 페이지에 Content-Security-Policy 메타가 걸려 있어 인라인 `<script>` 와 `onclick` 같은 인라인 속성은 동작하지 않습니다. 스크립트는 `assets/js/` 아래 파일로 두고 `<script src>` 로 불러오세요.

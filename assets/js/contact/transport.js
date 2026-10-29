@@ -1,5 +1,5 @@
 // 문의 전송 공급자 구현 — Web3Forms(현행) / 자체 접수 API(준비). UI 는 outcome 만 보고 화면을 그린다.
-//   outcome.kind: ok | invalid | conflict | rate_limited | server_error | rejected | timeout | network
+//   outcome.kind: ok | invalid | conflict | rate_limited | server_error | rejected | timeout | network   (서버 확정 계약 2026-10-29: docs/handoff/INTAKE_API_CONTRACT.md 3절)
 //   · ok 는 공급자가 "저장(접수)" 을 확인한 경우만. intake 는 서버 접수번호(intakeNo)가 있어야 ok.
 //   · 409(충돌)·429(제한)·5xx·시간초과는 성공이 아니다. 시간초과는 서버에 저장됐을 수 있으므로 같은 요청 식별자로 재시도한다.
 //   · 한 번의 제출은 공급자 하나로만 보낸다. 실패해도 다른 공급자로 자동 우회하지 않는다.
@@ -60,20 +60,34 @@ export async function sendWeb3Forms(url, fields, signal) {
   return { kind: 'rejected', provider: 'web3forms', status: res.status, message: data ? str(data.message) : '' };
 }
 
-/** 자체 접수 API: 구조화 본문 + Idempotency-Key(요청 식별자). 서버가 저장을 확인하고 접수번호를 준 경우만 ok */
+/** 접수번호 형식(서버 확정: IQ-000123 — 계약 3절). 일반 형식 [A-Za-z0-9-]{4,40} 안에서만 받는다 */
+export const INTAKE_NO_RE = /^[A-Za-z0-9-]{4,40}$/;
+/** 서버가 돌려주는 오류 코드 (계약 3절) */
+export const INTAKE_ERRORS = Object.freeze(['invalid', 'conflict', 'rate_limited', 'server_error', 'bad_request', 'too_large', 'origin']);
+/** 사용자가 고칠 수 있는 항목 키 (422 fields). 그 밖의 키(requestId·clientRef·calc·schema·body)는 입력 문제가 아니라 전송 형식 문제다 */
+export const USER_FIELDS = Object.freeze(['contact.name', 'contact.phone', 'site.address', 'message', 'consent', 'topic.key']);
+const retryAfterOf = res => { const n = Number(res.headers.get('Retry-After')); return (Number.isFinite(n) && n > 0) ? Math.min(Math.round(n), 3600) : null; };   // 초 단위만(날짜 형식·음수는 무시), 최대 1시간
+
+/** 자체 접수 API(서버 확정 계약 sr-intake/1): 구조화 본문 + Idempotency-Key(요청 식별자) + X-SR-Schema.
+ *  201(신규)·200(replay: 같은 식별자·같은 내용 재전송) + ok:true + intakeNo 일 때만 ok — 그 밖의 2xx 는 저장 확인이 아니다.
+ *  400 bad_request(헤더·본문 형식)·413 too_large·403 origin → rejected(입력 문제 아님, 재시도해도 같음) / 422 invalid → fields / 409 conflict / 429 rate_limited(+Retry-After) / 5xx server_error */
 export async function sendIntake(url, inquiry, signal) {
   const { res, data } = await postJson(url, inquiry, { 'Idempotency-Key': inquiry.requestId, 'X-SR-Schema': inquiry.schema }, signal);
   const d = (data && typeof data === 'object') ? data : {};
-  if ((res.status === 201 || res.status === 200) && d.ok === true && typeof d.intakeNo === 'string' && /^[A-Za-z0-9-]{4,40}$/.test(d.intakeNo)) {
-    if (d.requestId && d.requestId !== inquiry.requestId) return { kind: 'server_error', provider: 'intake', status: res.status, message: '응답의 요청 식별자 불일치' };
+  const error = str(d.error, 40) || null, message = str(d.message, 160);
+  const fields = Array.isArray(d.fields) ? d.fields.filter(x => typeof x === 'string' && x.length <= 40).slice(0, 10) : [];
+  if ((res.status === 201 || res.status === 200) && d.ok === true && typeof d.intakeNo === 'string' && INTAKE_NO_RE.test(d.intakeNo)) {
+    if (d.requestId && d.requestId !== inquiry.requestId) return { kind: 'server_error', provider: 'intake', status: res.status, error: 'request_id_mismatch', message: '응답의 요청 식별자 불일치' };
     return { kind: 'ok', provider: 'intake', intakeNo: d.intakeNo, replay: d.replay === true, receivedAt: str(d.receivedAt, 40) };
   }
-  if (res.ok) return { kind: 'server_error', provider: 'intake', status: res.status, message: '저장 확인(접수번호) 없는 응답' };   // 2xx 라도 접수번호가 없으면 저장을 확인한 것이 아니다
-  if (res.status === 400 || res.status === 422) return { kind: 'invalid', provider: 'intake', status: res.status, fields: Array.isArray(d.fields) ? d.fields.filter(x => typeof x === 'string').slice(0, 10) : [], message: str(d.message) };
-  if (res.status === 409) return { kind: 'conflict', provider: 'intake', status: 409, message: str(d.message) };
-  if (res.status === 429) return { kind: 'rate_limited', provider: 'intake', status: 429, retryAfter: Number(res.headers.get('Retry-After')) || null };   // 교차 origin 에서는 서버가 Access-Control-Expose-Headers: Retry-After 를 내야 읽힌다
-  if (res.status >= 500) return { kind: 'server_error', provider: 'intake', status: res.status };
-  return { kind: 'rejected', provider: 'intake', status: res.status, message: str(d.message) };
+  if (res.ok) return { kind: 'server_error', provider: 'intake', status: res.status, error: 'no_intake_no', message: '저장 확인(접수번호) 없는 응답' };   // 2xx 라도 접수번호가 없으면 저장을 확인한 것이 아니다
+  if (res.status === 422) return { kind: 'invalid', provider: 'intake', status: 422, error: error || 'invalid', fields, message };
+  if (res.status === 409) return { kind: 'conflict', provider: 'intake', status: 409, error: error || 'conflict', message };
+  if (res.status === 429) return { kind: 'rate_limited', provider: 'intake', status: 429, error: error || 'rate_limited', retryAfter: retryAfterOf(res) };   // 교차 origin 에서는 서버가 Access-Control-Expose-Headers: Retry-After 를 낸다(계약 확인)
+  if (res.status >= 500) return { kind: 'server_error', provider: 'intake', status: res.status, error: error || 'server_error', message };
+  if (res.status === 400) return { kind: 'rejected', provider: 'intake', status: 400, error: error || 'bad_request', fields, message };   // 헤더·스키마·JSON 문제 — 같은 본문 재시도는 의미 없다
+  if (res.status === 413) return { kind: 'rejected', provider: 'intake', status: 413, error: error || 'too_large', fields: ['message'], message };
+  return { kind: 'rejected', provider: 'intake', status: res.status, error, fields, message };   // 403 origin 등
 }
 
 /** 공급자 하나로 보낸다. 시간초과·네트워크 오류는 kind 로 돌려준다 (예외를 던지지 않는다) */

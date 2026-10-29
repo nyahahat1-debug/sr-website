@@ -1,0 +1,1 @@
+{ "ok": false, "error": "invalid", "fields": ["requestId", "topic.key", "contact.name", "contact.phone", "site.address", "consent"], "message": "입력값을 확인해 주세요" }

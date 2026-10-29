@@ -1,0 +1,9 @@
+{
+  "schema": "sr-intake/1",
+  "requestId": "not-a-hex-id",
+  "topic": { "key": "franchise" },
+  "contact": { "name": "", "phone": "전화번호 없음" },
+  "site": { "address": "" },
+  "message": "x",
+  "consent": { "privacy": false, "policyVersion": "v1.0" }
+}

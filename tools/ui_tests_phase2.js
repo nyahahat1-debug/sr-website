@@ -7,6 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
 const { chromium } = require('playwright-core');
+const { checkInquiry } = require('./intake_rules.cjs');
 const BASE = 'http://127.0.0.1:8787/';
 const W3 = 'https://api.web3forms.com/submit', INTAKE = '**/__dev__/intake/inquiries';
 const OUT = process.argv[2] || path.join(__dirname, '..', '_private', 'ui-tests-p2');
@@ -57,6 +58,7 @@ const submit = p => p.evaluate(() => document.getElementById('analysisForm').req
     ok(b.schema === 'sr-intake/1' && /^[0-9a-f]{32}$/.test(b.requestId) && hd['idempotency-key'] === b.requestId, '구조화 본문 + Idempotency-Key = 요청 식별자');
     ok(/^SR-\d{6}-/.test(b.clientRef) && b.topic.key === 'monitoring' && b.contact.name === '테스트 담당자' && b.site.address.includes('전주') && b.consent.privacy === true && b.message === '시험 문의', '본문 필드(참조번호·관심 분야·연락처·주소·동의·메시지)');
     ok(!('access_key' in b) && b.calc === null && b.calcSummary === null, 'Web3Forms 키 없음 · 계산 조건 없음');
+    ok(checkInquiry(b).length === 0 && hd['x-sr-schema'] === 'sr-intake/1' && hd['content-type'].startsWith('application/json'), '본문이 서버 확정 규칙(intake_rules.cjs) 통과 · X-SR-Schema · JSON');
     ok(await okVisible(p) && (await p.$eval('#formOkTitle', e => e.textContent)) === '문의가 접수되었습니다' && (await p.$eval('#formOkIntake', e => e.textContent)).includes('IN-2026-000123'), '서버 저장 확인(201+intakeNo) → 접수 완료 + 서버 접수번호');
     ok((await p.$eval('#formOkRef', e => e.textContent)).includes(b.clientRef), '브라우저 참조번호도 구분해 표시');
     await shot(p, 'intake-success'); await p.close();
@@ -69,11 +71,30 @@ const submit = p => p.evaluate(() => document.getElementById('analysisForm').req
     await p.close();
   }
   {
+    // 서버 fixture 응답 그대로(response_201.json) · 관심 분야 미선택 → topic.key 'other' · 접수 시각 표시
+    const fx = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'intake', 'response_201.json'), 'utf8'));
+    const { p, calls } = await open('contact.html?intake=dev', { intake: r => r.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ ...fx, requestId: JSON.parse(r.request().postData()).requestId }) }) });
+    await fillValid(p); await submit(p); await p.waitForTimeout(600);
+    const b = calls.intake[0].body;
+    ok(b.topic.key === 'other' && b.topic.label === null && checkInquiry(b).length === 0, "관심 분야 미선택 → topic.key 'other' · label null (계약 2절)");
+    const it = await p.$eval('#formOkIntake', e => e.textContent);
+    ok(await okVisible(p) && it.includes('IQ-000001') && it.includes('접수 10.30 09:12') && !it.includes('이미 접수'), `서버 fixture 201 → 접수번호 IQ-000001 · 접수 시각(KST) 표시: "${it.slice(0, 40)}"`);
+    await p.close();
+  }
+  {
+    // 연락처 형식은 서버 규칙과 같게 1차 검증(숫자·+·-·괄호·공백 5~30자) — 전송 전에 안내
+    const { p, calls } = await open('contact.html?intake=dev');
+    await fillValid(p); await p.fill('#fld-2', '010-0000-0000 (오후 연락)'); await submit(p); await p.waitForTimeout(300);
+    ok(calls.intake.length === 0 && (await statusText(p)).includes('연락처는 숫자'), '연락처에 허용 밖 문자 → 전송 전 안내(서버 422 사전 차단)');
+    ok((await p.$eval('#fld-1', e => e.maxLength)) === 50 && (await p.$eval('#fld-3', e => e.maxLength)) === 200 && (await p.$eval('#fld-7', e => e.maxLength)) === 2000 && (await p.$eval('#fld-2', e => e.maxLength)) === 30, '입력 길이 제한 = 서버 한도(50·30·200·2000)');
+    await p.close();
+  }
+  {
     // 시간초과 → 같은 요청 식별자로 재시도, 서버가 replay 로 응답
     const { p, calls } = await open('contact.html?intake=dev', { intake: async (r, n) => { if (n === 1) { await new Promise(res => setTimeout(res, 21500)); try { await r.abort(); } catch (e) { } } else await r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, intakeNo: 'IN-2026-000777', replay: true, requestId: JSON.parse(r.request().postData()).requestId }) }); } });
     await fillValid(p); await submit(p); await p.waitForTimeout(21000);
     const st = await statusText(p);
-    ok(st.includes('20초') && st.includes('다시 전송') && st.includes('중복 접수되지 않습니다'), '시간초과 안내(저장됐을 수 있음 · 같은 식별자 재시도)');
+    ok(st.includes('20초') && st.includes('다시 전송') && st.includes('이 화면에서는 중복 접수되지 않습니다') && st.includes('새로 고치면 새 요청'), '시간초과 안내: 중복 방지는 같은 화면·같은 식별자 재시도에 한정, 새로고침 뒤는 보장하지 않음');
     ok(calls.w3.length === 0, '시간초과 후 Web3Forms 자동 우회 없음');
     await submit(p); await p.waitForTimeout(700);
     ok(calls.intake.length === 2 && calls.intake[1].body.requestId === calls.intake[0].body.requestId && calls.intake[1].body.clientRef === calls.intake[0].body.clientRef, '재시도: 같은 요청 식별자·같은 참조번호');
@@ -108,18 +129,26 @@ const submit = p => p.evaluate(() => document.getElementById('analysisForm').req
     ok(calls.w3.length === 2 && JSON.stringify(calls.w3[1].body) === JSON.stringify(calls.w3[0].body) && calls.intake.length === 0, 'Web3Forms 재시도: 같은 식별자·같은 본문, 접수 API 호출 없음');
     await p.close();
   }
+  const fxr = n => fs.readFileSync(path.join(__dirname, 'fixtures', 'intake', n), 'utf8');
   for (const [name, status, body, expect] of [
-    ['충돌 409', 409, '{"ok":false,"message":"different content"}', /다른 내용/],
-    ['요청 제한 429', 429, '{"ok":false}', /제한/],
-    ['입력 오류 422', 422, '{"ok":false,"fields":["contact.phone"]}', /입력 내용/],
+    ['충돌 409(서버 fixture)', 409, fxr('response_409.json'), /다른 내용.*새로 고친/],
+    ['요청 제한 429(서버 fixture)', 429, fxr('response_429.json'), /제한/],
+    ['입력 오류 422', 422, '{"ok":false,"error":"invalid","fields":["contact.phone"]}', /입력 내용/],
+    ['입력 오류 422 topic.key', 422, '{"ok":false,"error":"invalid","fields":["topic.key"]}', /입력 내용/],
+    ['전송 형식 422 calc', 422, '{"ok":false,"error":"invalid","fields":["calc"]}', /전송 형식 문제\(항목: calc\)/],
+    ['형식 오류 400(서버 fixture)', 400, fxr('response_400.json'), /거부.*전송 형식 문제/],
+    ['본문 초과 413(서버 fixture)', 413, fxr('response_413.json'), /너무 큽니다/],
+    ['origin 거부 403(서버 fixture)', 403, fxr('response_403_origin.json'), /허용되어 있지 않/],
     ['거부 403', 403, '{"ok":false}', /거부/],
   ]) {
     const { p, calls } = await open('contact.html?intake=dev', { intake: r => r.fulfill({ status, contentType: 'application/json', headers: status === 429 ? { 'Retry-After': '30' } : {}, body }) });
     await fillValid(p); await submit(p); await p.waitForTimeout(600);
     const st = await statusText(p);
     ok(expect.test(st) && !(await okVisible(p)) && (await p.$eval('#fld-3', e => e.value)).includes('전주') && calls.w3.length === 0, `${name}: 구분 안내 "${st.slice(0, 28)}…" · 성공 아님 · 입력 유지 · 우회 없음`);
-    if (status === 429) ok(st.includes('30초'), '429 Retry-After 반영');
-    if (status === 422) ok((await p.$eval('#fld-2', e => e.closest('.form-row').classList.contains('invalid'))) && (await p.evaluate(() => document.activeElement.id)) === 'fld-2', '서버 항목 오류 → 해당 항목 표시·포커스');
+    if (status === 429) { ok(st.includes('30초'), '429 Retry-After 반영'); ok((await p.$eval('.form-submit', e => e.disabled && /초 후 다시 전송/.test(e.textContent))), '429: Retry-After 동안 버튼 잠금(카운트다운)'); }
+    if (name === '입력 오류 422') ok((await p.$eval('#fld-2', e => e.closest('.form-row').classList.contains('invalid'))) && (await p.evaluate(() => document.activeElement.id)) === 'fld-2', '서버 항목 오류 → 해당 항목 표시·포커스');
+    if (name === '입력 오류 422 topic.key') ok((await p.$eval('#fld-5', e => e.closest('.form-row').classList.contains('invalid'))) && (await p.evaluate(() => document.activeElement.id)) === 'fld-5', '422 topic.key → 관심 분야 항목 표시·포커스');
+    if (name === '전송 형식 422 calc') ok(!(await p.$$eval('.form-row.invalid', els => els.length)) && (await p.$eval('.form-submit', e => e.textContent)) !== '다시 전송', '422 calc(사용자 항목 아님) → 항목 표시 없이 새로고침 안내');
     if (status === 409) await shot(p, 'intake-conflict');
     await p.close();
   }
@@ -284,7 +313,7 @@ const submit = p => p.evaluate(() => document.getElementById('analysisForm').req
     // 1단계 흐름 회귀: topic/calc 호환, 동의 미체크 차단
     const { p, calls } = await open('contact.html?topic=maintenance&calc=' + encodeURIComponent('[경제성 계산기 결과] 500 kW'));
     ok((await p.$eval('#fld-5', e => e.value)) === '발전 저하·인버터·유지보수 상담' && (await p.$eval('#fld-7', e => e.value)).includes('500 kW'), 'topic/calc 링크 호환');
-    await p.fill('#fld-1', 'a'); await p.fill('#fld-2', '1'); await p.fill('#fld-3', 'b'); await submit(p); await p.waitForTimeout(300);
+    await p.fill('#fld-1', 'a'); await p.fill('#fld-2', '010-0000-0000'); await p.fill('#fld-3', 'b'); await submit(p); await p.waitForTimeout(300);
     ok(calls.w3.length === 0 && (await statusText(p)).includes('동의'), '동의 없이 전송 안 됨');
     await p.close();
   }

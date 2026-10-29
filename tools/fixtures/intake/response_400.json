@@ -1,0 +1,1 @@
+{ "ok": false, "error": "bad_request", "fields": ["requestId"], "message": "Idempotency-Key 와 requestId 가 다릅니다" }
