@@ -1,4 +1,4 @@
-// ── 폴백 훅: WebGL 미지원 / 모듈 로드 실패 / 초기화 오류 / 7초 내 준비 안 됨 → 정적 폴백
+// ── 폴백 훅: WebGL 미지원 / 모듈 로드 실패 / 초기화 오류 / 20초 내 준비 안 됨(아래 setTimeout) → 정적 폴백
 //    3D 없이도 장면 텍스트는 스크롤로 읽을 수 있게 한다. 구간 값은 timeline.js SCENES 와 동일하게 유지할 것.
 window.__srGate=new Promise(function(r){window.__srGateDone=r;});     // 시작 화면에서 '들어가기'를 누르면 resolve → 타이포 인트로 시작 (scene3d/main.js)
 window.__srIntro=new Promise(function(r){window.__srIntroDone=r;});   // 인트로가 끝나면 resolve (scene3d/main.js)

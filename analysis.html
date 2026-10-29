@@ -760,6 +760,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%;color-scheme:only light
 @media(max-width:960px){.ec-grid{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:600px){.ec-row2,.ec-tiles,.ec-cmp-grid{grid-template-columns:minmax(0,1fr)}.ec-badge{font-size:10.5px}}
 @media(pointer:coarse){.ec-select,.ec-num-s{font-size:16px}.ec-num-s{width:108px}}   /* 16px 미만이면 iOS 가 입력 시 화면을 확대 */
+
+/* ═══ 1단계 개선 · 2026-10-29 ═══ */
+.ph-stat-row{gap:12px}.ph-stat-val{white-space:nowrap;flex:none}.ph-stat-label{min-width:0}
 </style>
 <script src="assets/js/site.js"></script>
 </head>
@@ -793,30 +796,30 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%;color-scheme:only light
         </div>
       </div>
       <div class="ph-card reveal">
-        <div class="ph-card-label">분석 결과 예시 · 500kW급 제조공장 (예시 데이터)</div>
+        <div class="ph-card-label">분석 결과 예시 · 500kW 제조공장 · 계산기 데모 가정값으로 산출</div>
         <div class="ph-stat">
           <div class="ph-stat-row">
-            <span class="ph-stat-label">설치 가능 용량</span>
-            <span class="ph-stat-val"><span class="cu" data-to="498" data-dec="0">0</span><span>kW</span></span>
+            <span class="ph-stat-label">설치 용량</span>
+            <span class="ph-stat-val"><span id="exCap">—</span><span>kW</span></span>
           </div>
           <div class="ph-stat-row">
             <span class="ph-stat-label">연간 예상 발전량</span>
-            <span class="ph-stat-val"><span class="cu" data-to="618" data-dec="0">0</span><span>MWh</span></span>
+            <span class="ph-stat-val"><span id="exGen">—</span><span>MWh</span></span>
           </div>
           <div class="ph-stat-row">
-            <span class="ph-stat-label">연간 전기료 절감액</span>
-            <span class="ph-stat-val hi"><span class="qual">약</span> <span class="cu" data-to="1100" data-dec="0">0</span><span>만 원</span></span>
+            <span class="ph-stat-label">연간 전기요금 절감 (1년차)</span>
+            <span class="ph-stat-val hi"><span class="qual">약</span> <span id="exSave">—</span></span>
           </div>
           <div class="ph-stat-row">
-            <span class="ph-stat-label">투자비</span>
-            <span class="ph-stat-val"><span class="cu" data-to="6.2" data-dec="1">0</span><span>억 원</span></span>
+            <span class="ph-stat-label">투자비 (데모 원단위)</span>
+            <span class="ph-stat-val"><span class="qual">약</span> <span id="exCapex">—</span></span>
           </div>
           <div class="ph-stat-row">
-            <span class="ph-stat-label">예상 회수기간</span>
-            <span class="ph-stat-val hi"><span class="cu" data-to="5.6" data-dec="1">0</span><span>년</span></span>
+            <span class="ph-stat-label">투자 회수기간</span>
+            <span class="ph-stat-val hi"><span id="exPayback">—</span><span>년</span></span>
           </div>
         </div>
-        <div class="ph-note">* 현장별 조건(일사량·지붕 상태·요금제·계통 여건)에 따라 수치는 달라집니다.<br>정확한 분석은 현장 확인 후 제공해 드립니다.</div>
+        <div class="ph-note" id="exNote">* 아래 계산기와 같은 식·데모 가정값으로 계산한 예시입니다. 현장별 조건(일사량·지붕 상태·요금제·계통 여건)에 따라 수치는 달라지며, 정확한 분석은 현장 확인 후 제공해 드립니다.</div>
       </div>
     </div>
   </div>
@@ -1149,6 +1152,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%;color-scheme:only light
 <script src="assets/js/pages/nav.js"></script>
 <script type="module" src="assets/js/pages/analysis-market.js"></script>
 <script type="module" src="assets/js/pages/analysis-calc.js"></script>
+<script type="module" src="assets/js/pages/analysis-hero.js"></script>
 <script src="assets/js/pages/hero-lines.js"></script>
 </body>
 </html>

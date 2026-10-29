@@ -85,8 +85,8 @@ if(bw)bw.querySelectorAll('.bar').forEach(b=>b.style.height='6px');
   function reason(m){
     if(m.id==='self')return'낮 시간 전력 사용과 지붕·부지 조건을 보면, 자가소비 방식이 가장 경제적일 가능성이 높습니다.';
     if(m.id==='sell')return'자가 소비가 많지 않고 활용할 부지가 있어, 발전판매 사업이 적합합니다.';
-    if(state.contract==='cx'||state.peak==='px')return'고압 여부와 피크(500kW 미만)만 확인되면, 태양광 없이 요금제를 저압으로 바꿔 매월 20~30% 절감할 수 있습니다.';
-    return'현재 고압 요금에 실제 피크가 500kW 미만이라, 요금제를 저압(갑)으로 바꾸는 것만으로 매월 20~30% 절감이 가능한 조건입니다.';
+    if(state.contract==='cx'||state.peak==='px')return'고압 계약 여부와 실제 피크(500kW 미만)가 확인되면, 태양광 없이 저압 계약으로 바꿔 전기료를 줄일 수 있는 조건일 수 있습니다. 현장에 따라 20~30% 안팎 절감이 나오는 경우가 있으며, 전환 공사 범위는 현장 확인 후 정해집니다.';
+    return'현재 고압 요금에 실제 피크가 500kW 미만이라, 저압(갑) 계약으로 바꾸면 전기료가 줄 수 있는 조건입니다. 현장에 따라 20~30% 안팎 절감이 나오는 경우가 있으며, 수전설비 변경 공사 범위·비용은 현장 확인 후 정해집니다.';
   }
   document.getElementById('dxRun').addEventListener('click',()=>{
     let miss=false;
@@ -102,8 +102,8 @@ if(bw)bw.querySelectorAll('.bar').forEach(b=>b.style.height='6px');
     const bars=ranked.map(m=>{const v=verdict(m);const top=m.id===lead.id&&!weak;return`<div class="dx-brow"><span class="dx-bname">${m.name}</span><span class="dx-btrack"><span class="dx-bfill ${top?'top':''}" data-w="${m.score}"></span></span><span class="dx-bverdict ${v.rec?'rec':''}">${v.t} · ${m.score}</span></div>`;}).join('');
     let html='';
     if(weak){html=`<div class="dx-rlabel">진단 결과</div><div class="dx-rhead">조건이 경계에 있어 단정하기 어렵습니다.<br><b>정밀진단으로 정확히 짚어 드립니다.</b></div><div class="dx-reason">최근 전기요금 명세와 현장 정보를 보면 숫자로 가려낼 수 있습니다.</div>`;}
-    else{html=`<div class="dx-rlabel">진단 결과 · 추천</div><div class="dx-rhead">현재 조건에서는 <b>${lead.name}</b> 방식이 가장 적합합니다.</div><div class="dx-reason">${reason(lead)}</div>`;if(est)html+=`<div class="dx-est"><span class="el">추정 절감액 (수전합리화)</span><span class="ev">${est.m}</span><span class="ev">${est.y}</span></div>`;}
-    html+=`<div class="dx-bars">${bars}</div><div class="dx-rfoot">* 입력 정보 기반 참고용. 실제 효과는 현장 분석 후 확정됩니다.</div><div class="dx-rcta"><a href="contact.html" class="btn btn-sky" style="font-size:14px;padding:12px 20px">이 결과로 정밀진단 신청</a></div>`;
+    else{html=`<div class="dx-rlabel">진단 결과 · 추천</div><div class="dx-rhead">현재 조건에서는 <b>${lead.name}</b> 방식이 가장 적합합니다.</div><div class="dx-reason">${reason(lead)}</div>`;if(est)html+=`<div class="dx-est"><span class="el">참고 절감 범위 (수전합리화 · 월 요금의 20~30% 가정)</span><span class="ev">${est.m}</span><span class="ev">${est.y}</span></div>`;}
+    html+=`<div class="dx-bars">${bars}</div><div class="dx-rfoot">* 입력 정보 기반 참고용이며 절감을 보장하지 않습니다. 실제 효과와 전환 공사 범위는 현장 분석 후 확정됩니다.</div><div class="dx-rcta"><a href="contact.html" class="btn btn-sky" style="font-size:14px;padding:12px 20px">이 결과로 정밀진단 신청</a></div>`;
     const box=document.getElementById('dxResult');
     box.innerHTML=html;box.hidden=false;
     requestAnimationFrame(()=>box.querySelectorAll('.dx-bfill').forEach(x=>x.style.width=x.dataset.w+'%'));

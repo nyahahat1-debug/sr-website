@@ -2,7 +2,7 @@
 // 경제성 계산기 UI — model.js(순수 계산) + tariff.js(요금제) 를 DOM 에 연결
 // mountCalculator(container, { prefill })
 // ─────────────────────────────────────────────────────────────
-import { ASSUMPTIONS, defaults, compute, demoKeys, fmt } from './model.js';
+import { ASSUMPTIONS, defaults, compute, demoKeys, fmt, summaryLine, applyMarket as applyMarketTo } from './model.js';
 import { TARIFFS, KINDS, SEASONS, SEASON_LABEL, BAND_LABEL, TOU_TEXT, TARIFF_SOURCE } from './tariff.js';
 import { SITE_PRESETS } from './presets.js';
 
@@ -54,10 +54,7 @@ export function mountCalculator(root, { prefill = {} } = {}) {
     h('div', { class: 'ec-tariff-note ec-market-note' }));
   function applyMarket() {
     const d = market.data; if (!d || market.basis === 'manual') return;
-    const pick = { avg365: [d.avg.smp365, d.avg.rec365], avg30: [d.avg.smp30, d.avg.rec30], today: [d.latest.smp && d.latest.smp.v, d.latest.rec && d.latest.rec.v] }[market.basis];
-    if (!pick) return; const [smp, rec] = pick;
-    if (smp) { a.smpKrwPerKwh = Math.round(smp * 10) / 10; if (assumpInputs.smpKrwPerKwh) assumpInputs.smpKrwPerKwh.value = a.smpKrwPerKwh; }
-    if (rec) { a.recKrwPerKwh = Math.round(rec / 1000 * 10) / 10; if (assumpInputs.recKrwPerKwh) assumpInputs.recKrwPerKwh.value = a.recKrwPerKwh; }   // 1 REC = 1,000 kWh
+    for (const k of applyMarketTo(a, d, market.basis)) if (assumpInputs[k]) assumpInputs[k].value = a[k];
   }
   fetch(new URL('../../data/market.json', import.meta.url), { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).then(d => { if (d && !d.sample && d.latest && d.latest.smp) { market.data = d; applyMarket(); render(); } }).catch(() => {});
   const tariffBox = h('div', { class: 'ec-tariff' },
@@ -115,7 +112,7 @@ export function mountCalculator(root, { prefill = {} } = {}) {
         errors, tiles, compare, breakdown, chart, detail,
         h('div', { class: 'ec-actions' }, tableBtn, ctaLink),
         tableWrap,
-        h('p', { class: 'ec-foot' }, `* 참고용 추정치입니다. 요금 단가 출처: ${TARIFF_SOURCE}. 기본요금(계약전력 기준)은 태양광으로 줄지 않으므로 절감에 넣지 않았습니다. 발전 시간 분포는 전형적 프로파일 가정이며, 실제 사업성은 현장 조사와 최근 12개월 명세로 확정합니다.`),
+        h('p', { class: 'ec-foot' }, `* 참고용 추정치입니다. 요금 단가 출처: ${TARIFF_SOURCE}. 기본요금(계약전력 기준)은 태양광으로 줄지 않으므로 절감에 넣지 않았습니다. 발전판매 수익은 부가세 별도이며 REC 단가(원/REC)는 1,000으로 나눠 원/kWh 로 환산합니다. 투자비 원단위는 데모값이며 모듈·인버터 교체비는 운영비에 포함하지 않았습니다. 발전 시간 분포는 전형적 프로파일 가정이며, 실제 사업성은 현장 조사와 최근 12개월 명세로 확정합니다.`),
       ),
     ),
   );
@@ -162,12 +159,12 @@ export function mountCalculator(root, { prefill = {} } = {}) {
     errors.hidden = true;
     const sell = r.mode === 'sell';
     const N = r.years.length;
-    const savingLabel = sell ? '연간 판매 수익 (1년차)' : '연간 전기요금 절감 (1년차)';
+    const savingLabel = sell ? '연간 판매 수익 (1년차 · 부가세 별도)' : '연간 전기요금 절감 (1년차 · 청구금액 기준)';
     const savingSub = sell ? `${fmt.int(r.saleUnit)} 원/kWh` : (r.tariff ? `${r.tariff.name} · 유효 단가 ${fmt.dec(r.unitPrice, 1)} 원/kWh (부가세·기금 포함)` : `자가소비 ${fmt.int(r.year1.self / r.year1.gen * 100)}% · 잉여 판매 ${fmt.krw(r.year1.sale)}`);
     tiles.innerHTML = [
       ['연간 예상 발전량 (1년차)', fmt.mwh(r.year1.gen), `${fmt.int(r.capacityKw)} kW 기준 · 자가소비 ${sell ? 0 : a.selfUseRatio}%`],
       [savingLabel, fmt.krw(sell ? r.year1.sale : r.year1.saving), savingSub],
-      ['단순 회수기간', fmt.years(r.paybackYears), `투자비 ${fmt.krw(r.capex)} (원단위 ${fmt.int(a.capexKrwPerKw / 10000)}만 원/kW)`],
+      ['투자 회수기간 (누적 현금흐름)', fmt.years(r.paybackYears), `투자비 ${fmt.krw(r.capex)} (원단위 ${fmt.int(a.capexKrwPerKw / 10000)}만 원/kW) · 운영비·출력 감소·요금 상승 반영`],
       [`${N}년 누적 순수익`, fmt.krw(r.totals.cumProject), `운영비 차감 · IRR ${fmt.pct(r.irr)} · NPV ${fmt.krw(r.npv)}`],
     ].map(([k, v, s], i) => `<div class="ec-tile${i === 2 || i === 3 ? ' hi' : ''}"><div class="ec-tk">${k}</div><div class="ec-tv">${v}</div><div class="ec-ts">${s}</div></div>`).join('');
 
@@ -231,6 +228,7 @@ export function mountCalculator(root, { prefill = {} } = {}) {
 
     detail.innerHTML = `
       <div class="ec-drow"><span>투자비</span><b>${fmt.krw(r.capex)}</b></div>
+      <div class="ec-drow"><span>단순 회수기간 (투자비 ÷ 1년차 순수익)</span><b>${fmt.years(r.simplePaybackYears)}</b></div>
       ${r.loan > 0 ? `<div class="ec-drow"><span>대출 ${fmt.int(a.loanRatio)}% · 연 상환액</span><b>${fmt.krw(r.loan)} · ${fmt.krw(r.debtYear)}/년</b></div><div class="ec-drow"><span>자기자본 회수기간 · 자기자본 IRR</span><b>${fmt.years(r.paybackEquityYears)} · ${fmt.pct(r.irrEquity)}</b></div>` : ''}
       <div class="ec-drow"><span>연간 운영비</span><b>${fmt.krw(r.opex)}</b></div>
       <div class="ec-drow"><span>균등화 발전원가 (LCOE)</span><b>${r.lcoe != null ? fmt.dec(r.lcoe, 0) + ' 원/kWh' : '—'}</b></div>
@@ -242,7 +240,7 @@ export function mountCalculator(root, { prefill = {} } = {}) {
       tableWrap.innerHTML = `<table><thead><tr><th>연차</th><th>발전량</th><th>${sell ? '판매' : '절감'}</th>${sell ? '' : '<th>잉여판매</th>'}<th>운영비</th>${r.loan > 0 ? '<th>상환</th>' : ''}<th>순수익</th><th>누적</th></tr></thead><tbody>${r.years.map(y =>
         `<tr><td>${y.y}</td><td>${fmt.mwh(y.gen)}</td><td>${fmt.krw(sell ? y.sale : y.saving)}</td>${sell ? '' : `<td>${fmt.krw(y.sale)}</td>`}<td>${fmt.krw(y.opex)}</td>${r.loan > 0 ? `<td>${fmt.krw(y.debt)}</td>` : ''}<td>${fmt.krw(y.net)}</td><td class="${y.cum < 0 ? 'neg' : ''}">${fmt.krw(y.cum)}</td></tr>`).join('')}</tbody></table>`;
     }
-    const summary = `[경제성 계산기 결과] ${sell ? '발전판매' : '자가소비'}${r.tariff ? ' · ' + r.tariff.name : ''} · ${fmt.int(r.capacityKw)} kW · 연 ${fmt.mwh(r.year1.gen)} · ${sell ? '판매' : '절감'} ${fmt.krw(sell ? r.year1.sale : r.year1.saving)}/년 · 회수 ${fmt.years(r.paybackYears)} (가정: ${edited ? edited + '개 수정' : '데모값'})`;
+    const summary = summaryLine(r, a, edited);
     ctaLink.href = 'contact.html?calc=' + encodeURIComponent(summary) + '#form';
   }
   if (prefill.preset) applyPreset(prefill.preset);

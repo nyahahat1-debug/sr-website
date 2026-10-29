@@ -138,6 +138,7 @@ export function compute(input, a = defaults()) {
   const genPV = years.reduce((s, yr) => s + yr.gen / Math.pow(1 + r, yr.y), 0);
   const costPV = capex + years.reduce((s, yr) => s + opex / Math.pow(1 + r, yr.y), 0);
   const y1 = years[0];
+  const simplePaybackYears = (y1.income - opex) > 0 ? capex / (y1.income - opex) : null;   // 단순 회수기간 = 투자비 ÷ 1년차 순수익(운영비 차감, 감소율·상승률 미반영)
   return {
     ok: true, errors: [],
     mode: input.mode, capacityKw: cap, capex, equity, loan, debtYear, opex, saleUnit, unitPrice,
@@ -150,11 +151,28 @@ export function compute(input, a = defaults()) {
       net: years.reduce((s, x) => s + x.net, 0),
       cumProject: cumProject, cum,
     },
-    paybackYears: paybackProject, paybackEquityYears: payback,
+    paybackYears: paybackProject, paybackEquityYears: payback, simplePaybackYears,
     npv: npv(r, projectFlows), irr: irr(projectFlows), irrEquity: loan > 0 ? irr(equityFlows) : null,
     lcoe: genPV > 0 ? costPV / genPV : null,
     years,
   };
+}
+
+/** 전력거래소 시세(market.json)를 가정값에 반영한다. 기준: avg365(기본) | avg30 | today. 반영한 키 목록을 돌려준다 (ui.js 와 예시 카드가 같은 식을 쓴다) */
+export function applyMarket(a, data, basis = 'avg365') {
+  if (!data || data.sample || !data.avg || !data.latest) return [];
+  const pick = { avg365: [data.avg.smp365, data.avg.rec365], avg30: [data.avg.smp30, data.avg.rec30], today: [data.latest.smp && data.latest.smp.v, data.latest.rec && data.latest.rec.v] }[basis];
+  if (!pick) return [];
+  const [smp, rec] = pick, applied = [];
+  if (Number.isFinite(smp) && smp > 0) { a.smpKrwPerKwh = Math.round(smp * 10) / 10; applied.push('smpKrwPerKwh'); }
+  if (Number.isFinite(rec) && rec > 0) { a.recKrwPerKwh = Math.round(rec / 1000 * 10) / 10; applied.push('recKrwPerKwh'); }   // 1 REC = 1,000 kWh → 원/REC ÷ 1,000
+  return applied;
+}
+
+/** 문의 폼으로 넘기는 한 줄 요약 (화면 타일과 같은 값·단위를 쓴다) */
+export function summaryLine(r, a, edited) {
+  const sell = r.mode === 'sell';
+  return `[경제성 계산기 결과] ${sell ? '발전판매' : '자가소비'}${r.tariff ? ' · ' + r.tariff.name : ''} · ${fmt.int(r.capacityKw)} kW · 연 ${fmt.mwh(r.year1.gen)} · ${sell ? '판매(부가세 별도)' : '절감(청구금액 기준)'} ${fmt.krw(sell ? r.year1.sale : r.year1.saving)}/년 · 회수 ${fmt.years(r.paybackYears)}(누적 현금흐름 기준) · 투자비 ${fmt.krw(r.capex)}(원단위 ${fmt.int(a.capexKrwPerKw / 10000)}만 원/kW, 데모) (가정: ${edited ? edited + '개 수정' : '데모값'})`;
 }
 
 /** 가정값 중 데모값(수정 안 됨)인 키 목록 */
