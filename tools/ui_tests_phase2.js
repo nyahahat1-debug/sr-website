@@ -227,6 +227,24 @@ const submit = p => p.evaluate(() => document.getElementById('analysisForm').req
   await widget('hy-withheld', 'case-detail.html', fresh(v2), { schemaVersion: 2, withheld: true, updated: iso(Date.now()), publish: { status: 'withheld', allowed: false, fields: [] }, live: null, months: [] }, async (t, v, e, p) => ok(!v && (await p.$eval('.hy-effect', el => el.hidden)) && e.length === 0, '효성 withheld → 위젯·월별 표 숨김, 오류 없음'));
   await widget('hy-granted-table', 'case-detail.html', fresh(v2), hyFresh(), async (t, v, e, p) => ok(v && !(await p.$eval('.hy-effect', el => el.hidden)), '효성 granted → 위젯 + 월별 표 표시'));
 
+  console.log('C2. 실제 배포 파일(모든 현장 pending → 비공개 안전 JSON) — 가짜 응답 없이');
+  for (const pg of ['case-naewoon.html', 'case-dongmul.html', 'case-pga.html', 'case-detail.html']) {
+    const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(String(e)));
+    await p.goto(BASE + pg); await p.waitForTimeout(900);
+    const vis = await p.$eval('.gen-case', e => !e.hidden && getComputedStyle(e).display !== 'none').catch(() => false);
+    const tbl = pg === 'case-detail.html' ? await p.$eval('.hy-effect', e => !e.hidden).catch(() => false) : false;
+    const txt = await p.evaluate(() => document.body.innerText);
+    ok(!vis && !tbl && errs.length === 0 && !/자료 지연|발전 중|kWh\s*\/\s*수집/.test(txt), `${pg}: 위젯${pg === 'case-detail.html' ? '·월별 표' : ''} 숨김, JS 오류 없음`);
+    await p.close();
+  }
+  {
+    const r1 = await ctx.request.get(BASE + 'assets/data/generation.json'), r2 = await ctx.request.get(BASE + 'assets/data/hyosung-generation.json');
+    const j1 = await r1.json(), j2 = await r2.json();
+    ok(j1.withheld === true && j1.sites.length === 0 && j2.withheld === true && j2.live === null && j2.months.length === 0, 'JSON 직접 접근 경로: 둘 다 withheld, 현장·값 없음');
+    const t = JSON.stringify(j1) + JSON.stringify(j2);
+    ok(!/새운|동물|도민|효성|M5268|kWh/.test(t), '직접 접근 JSON 에 현장명·식별자 없음');
+  }
+
   console.log('D. 효성 사례 — 기금 요율 재계산 표시');
   {
     const p = await ctx.newPage();

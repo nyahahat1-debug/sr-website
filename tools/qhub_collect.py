@@ -39,6 +39,11 @@ def withheld_payload(now_s):
     return {'schemaVersion': SCHEMA_VERSION, 'withheld': True, 'updated': now_s, 'collectedAt': now_s, 'generatedAt': now_s, 'observedAt': None,
             'quality': None, 'publish': {'status': 'withheld', 'allowed': False, 'fields': []}, 'source': SOURCE_TEXT, 'live': None, 'months': [], 'errors': []}
 
+def is_withheld_file(path):
+    try: d = json.load(open(path, encoding='utf-8'))
+    except Exception: return False
+    return isinstance(d, dict) and d.get('withheld') is True and d.get('live') is None and d.get('months') == [] and not validate(d)
+
 def write_atomic(path, data):
     d = os.path.dirname(path) or '.'; os.makedirs(d, exist_ok=True)
     tmp = os.path.join(d, '.' + os.path.basename(path) + '.tmp')
@@ -210,6 +215,7 @@ def main():
     publish = publish_cfg(a.sites)
     if not publish['allowed']:
         # 공개 동의가 granted 가 아니다 → 포털을 호출하지 않고 비공개 안전 JSON 으로 교체(원자적). 이전 공개 파일이 남지 않는다.
+        if is_withheld_file(a.out): status(True, stage='publish', withheld=True); print(f"공개 동의 상태 {publish['status']} — 이미 비공개 안전 JSON (변경 없음, 수집 호출 없음)"); return
         write_atomic(a.out, withheld_payload(now_s)); status(True, stage='publish', withheld=True)
         print(f"공개 동의 상태 {publish['status']} — 비공개 안전 JSON 으로 교체했습니다 (수집 호출 없음)"); return
     def on_failure(stage):

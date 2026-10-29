@@ -117,12 +117,11 @@ def check_market():
         except Exception as e:
             pr.append(f'carbon.json 검사 실패: {e}')
     def legacy(path, name):
-        # 옛(v1) 공개 파일: 공개 동의 플래그·schemaVersion 이 없다. 수집기가 더 이상 만들지 않으며 브라우저도 표시하지 않는다.
-        # 다음 수집 실행에서 비공개 안전 JSON 으로 교체되므로 여기서는 실패가 아니라 경고로 알린다 (저장소 정리는 별도 절차).
+        # 옛(v1) 공개 파일(공개 동의 플래그·schemaVersion 없음)이 배포 대상에 남아 있으면 실패 — 배포를 막는다.
         try: d = json.load(io.open(path, encoding='utf-8'))
         except Exception: return False
         if isinstance(d, dict) and 'schemaVersion' not in d and 'publish' not in d and not d.get('withheld'):
-            print(f'  [경고] {name}: 옛(v1) 공개 파일 — 공개 동의 플래그 없음. 브라우저에 표시되지 않고 다음 수집 실행에서 교체됨. 저장소·이력 정리는 별도 절차 (docs/handoff/GENERATION_DATA_CONTRACT.md 4장)')
+            pr.append(f'{name}: 옛(v1) 공개 파일 — 공개 동의 플래그 없음 (배포 차단). tools/generation_collect.py 의 withheld_payload() 로 교체하거나 수집기를 실행')
             return True
         return False
     hy = os.path.join(ROOT, 'assets', 'data', 'hyosung-generation.json')
@@ -141,6 +140,40 @@ def check_market():
             pr += [f'generation.json: {x}' for x in gc.validate(json.load(io.open(g, encoding='utf-8')))[:10]]
         except Exception as e:
             pr.append(f'generation.json 검사 실패: {e}')
+    pr += check_publish_gate()
+    return pr
+
+def check_publish_gate():
+    """배포 대상 공개 JSON 2개에 granted 가 아닌 현장의 식별 정보(이름·포털 식별자·검색어·페이지)가 남아 있지 않은지,
+    시험 fixture 가 실제 현장 자료를 담고 있지 않은지. 과거 git 이력에 남은 값은 여기서 검사하지 않는다(별도 절차)."""
+    pr = []
+    cfg_p = os.path.join(ROOT, 'tools', 'generation_sites.json')
+    if not os.path.exists(cfg_p): return pr
+    try: cfg = json.load(io.open(cfg_p, encoding='utf-8'))
+    except Exception as e: return [f'generation_sites.json 읽기 실패: {e}']
+    sites = cfg.get('sites', [])
+    def tokens(c):
+        t = [c.get('id'), c.get('name'), c.get('match'), c.get('page')] + list(c.get('ids') or []) + list(c.get('matches') or [])
+        return [str(x) for x in t if x and len(str(x)) >= 4]
+    public_files = [('generation.json', os.path.join(ROOT, 'assets', 'data', 'generation.json')), ('hyosung-generation.json', os.path.join(ROOT, 'assets', 'data', 'hyosung-generation.json')), ('qhub-status.json', os.path.join(ROOT, 'assets', 'data', 'qhub-status.json'))]
+    texts = {n: (io.open(p, encoding='utf-8').read() if os.path.exists(p) else '') for n, p in public_files}
+    for c in sites:
+        st = (c.get('publish') or {}).get('status')
+        if st == 'granted': continue
+        for tok in tokens(c):
+            if tok.endswith('.html'): continue                      # page 는 위젯 위치 키이며 그 자체로 비공개 정보가 아니다
+            for n, txt in texts.items():
+                if tok in txt: pr.append(f'{n}: 동의 미확인 현장 정보 잔존 "{tok}" (publish.status={st or "없음"}) — 배포 차단')
+        if isinstance(c.get('publish'), dict) and c['publish'].get('note'):
+            for n, txt in texts.items():
+                if c['publish']['note'][:12] in txt: pr.append(f'{n}: 내부 메모 잔존 — 배포 차단')
+    # 시험 fixture 는 합성 자료여야 한다 (저장소가 공개이므로)
+    for fx in glob.glob(os.path.join(ROOT, 'tools', 'fixtures', '*.json')):
+        txt = io.open(fx, encoding='utf-8').read()
+        for c in sites:
+            for tok in tokens(c):
+                if tok.endswith('.html'): continue
+                if tok in txt: pr.append(f'tools/fixtures/{os.path.basename(fx)}: 실제 현장 정보 "{tok}" 포함 — 합성 자료로 교체')
     return pr
 
 def check_misc():
@@ -168,6 +201,7 @@ def main(argv):
         print(f'[{title}] ' + ('이상 없음' if not pr else f'{len(pr)}건'))
         for x in pr: print('  - ' + x)
     print(f'\n합계: 문제 {total}건')
+    print('[참고] 과거 git 이력에 남은 공개 값(2026-10-29 이전 수집 커밋)은 이 검사 대상이 아니며 별도 절차(docs/handoff/GENERATION_DATA_CONTRACT.md 4장)로 정리한다.')
     return 1 if (total and '--ci' in argv) else 0
 
 if __name__ == '__main__':

@@ -170,8 +170,28 @@ print('6) 현재 저장소 설정·공개 파일')
 cfg = json.load(open(G.SITES_FILE, encoding='utf-8'))
 ok(all(isinstance(c.get('publish'), dict) and c['publish'].get('status') in G.PUBLISH_STATES and c['publish'].get('fields') for c in cfg['sites']), '모든 현장에 publish.status·fields 가 있음')
 ok(not any(c['publish']['status'] == 'granted' for c in cfg['sites']), '현재 granted 현장 없음(동의 미확인) → 다음 수집 실행에서 공개 파일이 비공개 안전 JSON 으로 바뀐다')
-cur = json.load(open(os.path.join(HERE, '..', 'assets', 'data', 'generation.json'), encoding='utf-8'))
-ok(G.validate(cur) != [], '현재 공개 generation.json(v1, 동의 플래그 없음)은 새 validate 를 통과하지 않음 → 재배포 후 첫 실행에서 교체됨')
+DATA = os.path.join(HERE, '..', 'assets', 'data')
+cur = json.load(open(os.path.join(DATA, 'generation.json'), encoding='utf-8')); cur2 = json.load(open(os.path.join(DATA, 'hyosung-generation.json'), encoding='utf-8'))
+ok(cur.get('withheld') is True and cur['sites'] == [] and G.validate(cur) == [], '배포 대상 generation.json 은 비공개 안전 JSON (validate 통과)')
+ok(cur2.get('withheld') is True and cur2['live'] is None and cur2['months'] == [] and Q.validate(cur2) == [], '배포 대상 hyosung-generation.json 은 비공개 안전 JSON (validate 통과)')
+pub_txt = open(os.path.join(DATA, 'generation.json'), encoding='utf-8').read() + open(os.path.join(DATA, 'hyosung-generation.json'), encoding='utf-8').read() + open(os.path.join(DATA, 'qhub-status.json'), encoding='utf-8').read()
+toks = [t for c in cfg['sites'] for t in ([c.get('id'), c.get('name'), c.get('match')] + list(c.get('ids') or []) + list(c.get('matches') or [])) if t]
+ok(not any(t in pub_txt for t in toks) and 'kWh' not in pub_txt and 'note' not in cur, '배포 대상 3개 파일에 현장명·식별자·검색어·값·메모 없음')
+fx_txt = ''.join(open(os.path.join(HERE, 'fixtures', n), encoding='utf-8').read() for n in ('generation_v2.json', 'hyosung_v2.json'))
+ok(not any(t in fx_txt for t in toks), '시험 fixture 는 합성 자료 (실제 현장명·식별자 없음)')
+# 이미 withheld 인 파일은 다시 쓰지 않는다 (매시 시각만 바뀐 커밋 방지)
+tmp2 = tempfile.mkdtemp(prefix='sr-collector2-')
+try:
+    out = os.path.join(tmp2, 'generation.json'); pend = [{'id': 'M0001', 'name': '현장 A', 'page': 'case-a.html', 'publish': {'status': 'pending', 'fields': FIELDS}}]
+    rc, log, f1 = run_main('gen', tmp2, pend, out); t1 = open(out, encoding='utf-8').read()
+    rc, log, f2 = run_main('gen', tmp2, pend, out); t2 = open(out, encoding='utf-8').read()
+    ok(rc == 0 and t1 == t2 and '변경 없음' in log, 'HI SMART: 이미 비공개 안전 JSON 이면 다시 쓰지 않음(바이트 동일)')
+    outq = os.path.join(tmp2, 'hyosung.json'); qp = [{'id': 'HYOSUNG', 'collector': 'qhub', 'name': '효성', 'publish': {'status': 'pending', 'fields': ['site', 'live', 'months']}}]
+    rc, log, f1 = run_main('qhub', tmp2, qp, outq); t1 = open(outq, encoding='utf-8').read()
+    rc, log, f2 = run_main('qhub', tmp2, qp, outq); t2 = open(outq, encoding='utf-8').read()
+    ok(rc == 0 and t1 == t2 and '변경 없음' in log, 'Q.HUB: 이미 비공개 안전 JSON 이면 다시 쓰지 않음')
+finally:
+    shutil.rmtree(tmp2, ignore_errors=True)
 
 print('\n실패 %d건' % fails if fails else '\n전부 통과')
 sys.exit(1 if fails else 0)

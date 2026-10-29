@@ -43,6 +43,12 @@ def withheld_payload(now_s, today):
     return {'sample': False, 'schemaVersion': SCHEMA_VERSION, 'withheld': True, 'updated': now_s, 'collectedAt': now_s, 'generatedAt': now_s, 'date': today.isoformat(),
             'source': SOURCE_TEXT, 'sites': [], 'totals': {'capacityKw': None, 'nowKw': None, 'todayKwh': None, 'monthKwh': None, 'totalKwh': None, 'sites': 0}, 'errors': []}
 
+def is_withheld_file(path):
+    """이미 비공개 안전 JSON(값 없음, 검증 통과)인지 — 그러면 시각만 바뀐 파일을 다시 쓰지 않는다."""
+    try: d = json.load(open(path, encoding='utf-8'))
+    except Exception: return False
+    return isinstance(d, dict) and d.get('withheld') is True and d.get('sites') == [] and not validate(d)
+
 def write_atomic(path, data):
     """같은 폴더의 임시 파일에 쓰고 os.replace 로 바꾼다 (중간 상태 파일이 남지 않게)."""
     d = os.path.dirname(path) or '.'; os.makedirs(d, exist_ok=True)
@@ -258,6 +264,7 @@ def main():
     public_cfgs = [c for c in site_cfgs if is_public(c) and (not c.get('collector') or c.get('collector') == 'hismart')]
     if not public_cfgs:
         # 공개 동의가 확인된 현장이 없다 → 포털을 호출하지 않고 비공개 안전 JSON 으로 교체(원자적). 이전 공개 파일이 남지 않는다.
+        if is_withheld_file(args.out): print('공개 동의(granted) 현장 없음 — 이미 비공개 안전 JSON (변경 없음, 수집 호출 없음)'); return
         write_atomic(args.out, withheld_payload(now_s, today))
         print('공개 동의(granted) 현장 없음 — 비공개 안전 JSON 으로 교체했습니다 (수집 호출 없음)'); return
     def on_failure(stage):
