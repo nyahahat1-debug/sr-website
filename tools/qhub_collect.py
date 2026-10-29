@@ -17,6 +17,19 @@ SITE_NAME = '효성첨단소재 전주공장'
 CAPACITY_KW = 1530            # 홈페이지 표기(모듈 기준). 포털 등록 용량은 1,485.9kW(피드 3개)
 TARIFF_ID = 'ie-ha2'
 FIRST_MONTH = '2025-07'       # 월별 이력 적재 시작(준공 2025). 발전량 0 인 달은 자동으로 건너뛴다
+SITES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'generation_sites.json')
+SCHEMA_VERSION = 2
+
+def publish_cfg(path=SITES_FILE):
+    """generation_sites.json 의 collector:'qhub' 항목에서 공개 동의 상태를 읽는다. 없으면 pending(확인 대기 — 동의로 간주하지 않음)."""
+    try:
+        for c in json.load(open(path, encoding='utf-8')).get('sites', []):
+            if c.get('collector') == 'qhub':
+                pub = c.get('publish') if isinstance(c.get('publish'), dict) else {}
+                st = pub.get('status') if pub.get('status') in ('granted', 'pending', 'denied') else 'pending'
+                return {'status': st, 'allowed': True if st == 'granted' else (False if st == 'denied' else None), 'fields': [f for f in (pub.get('fields') or []) if isinstance(f, str) and f.isidentifier()][:40]}
+    except Exception: pass
+    return {'status': 'pending', 'allowed': None, 'fields': []}
 
 class Client:
     def __init__(self, uid, pw):
@@ -73,8 +86,11 @@ def months_between(a, b):
     return out
 
 # ── 변환 ────────────────────────────────────────────────────────────
-def build(prev, realtime, sites, chart, reports, now):
-    """realtime: getRealTimeSiteAjax, sites: getMainSiteListAjax, chart: getSiteChartList(HOUR), reports: {ym: getIntegratedData}"""
+def build(prev, realtime, sites, chart, reports, now, publish=None):
+    """realtime: getRealTimeSiteAjax, sites: getMainSiteListAjax, chart: getSiteChartList(HOUR), reports: {ym: getIntegratedData}
+    publish: 공개 동의 상태(publish_cfg()). denied 면 None 을 돌려 공개 파일을 쓰지 않게 한다."""
+    publish = publish or publish_cfg()
+    if publish['status'] == 'denied': return None
     me = ((realtime or {}).get('multiEnergyData') or [{}])[0]
     feeds = []
     for s in (sites or {}).get('siteRealTime') or []:
@@ -93,7 +109,13 @@ def build(prev, realtime, sites, chart, reports, now):
         if total <= 0: continue                       # 가동 전(0 kWh) 달은 싣지 않는다
         months[ym] = {'m': ym, 'kwh': total, 'days': len(rows), 'source': 'Q.HUB 발전보고서 일별 합', 'partial': ym == now.strftime('%Y-%m')}
     mlist = [months[k] for k in sorted(months)]
+    now_s = now.strftime('%Y-%m-%dT%H:%M:%S+09:00')
+    comm_err = any(str(f.get('status', '')).lower() in ('error', 'fault', 'comm error') for f in feeds)
     return {
+        'schemaVersion': SCHEMA_VERSION, 'collectedAt': now_s, 'generatedAt': now_s,
+        'observedAt': None,                     # Q.HUB 응답에 계측 시각이 없다 — 만들어 넣지 않는다
+        'quality': {'status': 'comm_error' if comm_err else 'ok', 'note': '포털이 피드 상태를 오류로 표시' if comm_err else None},
+        'publish': publish,
         'site': SITE_NAME, 'capacityKw': CAPACITY_KW, 'portalCapacityKw': round(sum((f['capacityKw'] or 0) for f in feeds), 1) if feeds else None, 'tariffId': TARIFF_ID,
         'note': '월별 발전량은 Q.HUB 발전보고서의 일별 값을 더한 것. 이번 달은 집계 중(partial). 자가소비 현장이라 포털의 SMP·REC 수익은 쓰지 않고 요금제로 절감액을 계산한다.',
         'updated': now.strftime('%Y-%m-%dT%H:%M:%S+09:00'),
@@ -113,7 +135,12 @@ def validate(data):
         if not re.match(r'^\d{4}-\d{2}$', str(m.get('m', ''))): pr.append(f"months.m {m.get('m')!r}")
         if not _ok(m.get('kwh'), 0, 5e6) or m.get('kwh') is None: pr.append(f"months.kwh {m.get('m')}")
         if m.get('source') is not None and (not isinstance(m['source'], str) or len(m['source']) > 80 or '<' in m['source']): pr.append('months.source')
-    if 'updated' in data and (not isinstance(data['updated'], str) or not re.match(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+09:00$', data['updated'])): pr.append('updated 형식')
+    for k in ('updated', 'collectedAt', 'generatedAt', 'observedAt'):
+        if data.get(k) is not None and (not isinstance(data[k], str) or not re.match(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+09:00$', data[k])): pr.append(f'{k} 형식')
+    q = data.get('quality')
+    if q is not None and (not isinstance(q, dict) or q.get('status') not in ('ok', 'stale', 'comm_error', 'partial', 'unknown')): pr.append('quality')
+    pb = data.get('publish')
+    if pb is not None and (not isinstance(pb, dict) or pb.get('status') not in ('granted', 'pending') or pb.get('allowed') not in (True, None)): pr.append('publish')
     L = data.get('live') or {}
     for k, hi in (('nowKw', 1e5), ('todayKwh', 1e6), ('monthKwh', 1e8), ('yearKwh', 1e9), ('todayHours', 24), ('monthHours', 800)):
         if not _ok(L.get(k), 0, hi): pr.append(f'live.{k} 범위')
@@ -155,6 +182,7 @@ def main():
             p = os.path.join(a.fixture_dir, f'report_{ym}.json')
             if os.path.exists(p): reports[ym] = json.load(open(p, encoding='utf-8'))
         data = build(prev, fx('realtime.json'), fx('sites.json'), fx('chart.json'), reports, now); calls = 0
+        if data is None: status(False, stage='publish', error='공개 금지(denied) — 파일을 쓰지 않습니다'); print('공개 금지(denied): 공개 파일을 쓰지 않습니다', file=sys.stderr); sys.exit(3)
     else:
         uid, pw = os.environ.get('QHUB_USER_ID', '').strip(), os.environ.get('QHUB_PASSWORD', '')
         if not uid or not pw: print('QHUB_USER_ID, QHUB_PASSWORD 환경변수가 필요합니다', file=sys.stderr); sys.exit(2)
@@ -171,10 +199,13 @@ def main():
                 try: reports[ym] = c.post('/report/getIntegratedData.do', {'startDate': s0, 'endDate': e0, 'selectedSiteIds': ids, 'selectedSiteNames': names, 'timeGroupType': 'weekly', 'reportType': 'monthly'})
                 except Exception as e: errors.append(f'{ym}: ' + redact(e, pw, uid))
             data = build(prev, realtime, sites, chart, reports, now)
+            if data is None: raise SystemExit(3)
             data['errors'] = errors
         except urllib.error.HTTPError as e:
             msg = f'HTTP {e.code} {e.reason} ({redact(getattr(e, "url", ""), pw, uid)[:80]})' + (' — 해외 IP 차단 가능성' if e.code in (403, 406, 429) else '')
             status(False, stage='fetch', error=msg, calls=c.calls); print('수집 실패:', msg, file=sys.stderr); sys.exit(1)
+        except SystemExit:
+            status(False, stage='publish', error='공개 금지(denied) — 파일을 쓰지 않습니다'); print('공개 금지(denied): 공개 파일을 쓰지 않습니다', file=sys.stderr); c.logout(); sys.exit(3)
         except Exception as e:
             msg = redact(e, pw, uid); status(False, stage='fetch', error=msg, calls=c.calls, session=str(getattr(c, 'last_status', ''))[:120].replace('<', ''))
             print('수집 실패:', msg, file=sys.stderr); sys.exit(1)

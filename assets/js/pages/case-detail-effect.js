@@ -1,6 +1,19 @@
 // 효성 전주공장 — 실측 발전량 기준 월별 경제효과 (전기요금 절감 + 온실가스 감축 + 배출권 가치)
-import { summarize } from '../economics/selfuse.js';
+import { summarize, publishedMonthTotal, fundRateAt } from '../economics/selfuse.js';
 import { TARIFF_SOURCE } from '../economics/tariff.js';
+import { SITE_PRESETS } from '../economics/presets.js';
+
+// 공개 분석값(3,709만 원 · 기금 3.7%)을 같은 시간대 배분으로 현행 요율(예시 월 기준 법정 요율)에서 다시 계산해 함께 보여 준다.
+try {
+  const pub = SITE_PRESETS.hyosung.published;
+  const rate = fundRateAt(pub.tou.month.replace('.', '-'));
+  const recalc = publishedMonthTotal(pub, rate);
+  const orig = publishedMonthTotal(pub, pub.fundRateApplied);
+  const manWon = v => Math.round(v / 1e4).toLocaleString('ko-KR') + '만 원';
+  const el1 = document.getElementById('hyRecalc'), el2 = document.getElementById('hyRecalc2');
+  if (el1) el1.textContent = `월 합계 약 ${manWon(recalc.total)} (기금 ${(rate * 100).toFixed(1)}% · 분석값 대비 ${manWon(orig.total - recalc.total)} 차이)`;
+  if (el2) el2.textContent = manWon(recalc.total);
+} catch (e) { /* 프리셋이 없으면 '—' 로 둔다 */ }
 
 const root = document.getElementById('hyEffect');
 const h = (tag, cls, ...kids) => { const el = document.createElement(tag); if (cls) el.className = cls; for (const k of kids) el.append(k); return el; };

@@ -521,9 +521,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%;color-scheme:only light
           <div class="spec-row"><span class="spec-k">경부하 (22~08시) × 116.0원/kWh</span><span class="spec-v">약 4,873 kWh · 약 57만 원</span></div>
           <div class="spec-row"><span class="spec-k">중간부하 (08~15·21~22시) × 133.4원/kWh</span><span class="spec-v">약 165,059 kWh · 약 2,202만 원</span></div>
           <div class="spec-row"><span class="spec-k">최대부하 (15~21시) × 150.9원/kWh</span><span class="spec-v">약 46,427 kWh · 약 701만 원</span></div>
-          <div class="spec-row"><span class="spec-k">기후환경요금·연료비조정액·부가세·전력기금 포함</span><span class="spec-v hi">월 합계 약 3,709만 원</span></div>
+          <div class="spec-row"><span class="spec-k">기후환경요금·연료비조정액·부가세·전력기금(분석 보고서 적용 3.7%) 포함</span><span class="spec-v hi">월 합계 약 3,709만 원</span></div>
+          <div class="spec-row"><span class="spec-k">같은 배분 · 현행 기금 요율 2.7%(2025-07-01 시행) 재계산</span><span class="spec-v" id="hyRecalc">—</span></div>
         </div>
-        <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-top:10px">* 예시 월의 실측 발전량(총 216,359.1kWh)을 시간대별 발전 패턴에 따라 배분한 값입니다. 절감액은 산업용(을) 고압A 선택Ⅱ 봄·가을철 전력량요금에 기후환경요금(9원/kWh)·연료비조정액(5원/kWh)·부가가치세(10%)·전력산업기반기금(3.7%)을 반영한 추정치이며, 계절과 요금 개정에 따라 달라집니다. 기본요금·역률요금 변동은 포함하지 않습니다.</p>
+        <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-top:10px">* 예시 월의 실측 발전량(총 216,359.1kWh)을 시간대별 발전 패턴에 따라 배분한 값입니다. 절감액은 산업용(을) 고압A 선택Ⅱ 봄·가을철 전력량요금에 기후환경요금(9원/kWh)·연료비조정액(5원/kWh)·부가가치세(10%)·전력산업기반기금을 반영한 추정치이며, 계절과 요금 개정에 따라 달라집니다. 3,709만 원은 분석 보고서 값으로 기금 요율 3.7%를 적용했고, 예시 월(2026.04)에 실제 적용되는 요율은 2.7%(2024-07-01 3.2%, 2025-07-01 2.7%로 단계 인하)라 재계산값을 함께 표시합니다. 아래 월별 경제효과 표는 현행 요율과 추정 시간대 배분(월별 발전 시간 분포)을 쓰므로 같은 달이라도 수치가 약간 다릅니다. 기본요금·역률요금 변동은 포함하지 않습니다.</p>
         <h2 id="effect">실측 발전량 기준 월별 경제효과</h2>
         <p>월별 실측 발전량에 현행 요금과 배출권 시세를 적용해 달마다 다시 계산합니다. 자가소비 현장이라 판매 수익이 아니라 <b>안 낸 전기요금</b>이 절감액이고, 여기에 온실가스 감축량을 배출권 시세로 환산한 가치를 더한 것이 경제효과 합계입니다.</p>
         <div class="hy-effect" hidden><div id="hyEffect"></div></div>
@@ -546,7 +547,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%;color-scheme:only light
           <div class="rc-row"><span class="rc-k">설치 용량</span><span class="rc-v"><span class="cu" data-to="1530" data-dec="0">0</span> kW</span></div>
           <div class="rc-row"><span class="rc-k">월 발전량 (실측, 예시 월)</span><span class="rc-v"><span class="cu" data-to="216359" data-dec="0">0</span> kWh</span></div>
           <div class="rc-row"><span class="rc-k">연간 예상 발전량</span><span class="rc-v"><span class="qual">약</span> <span class="cu" data-to="1979732" data-dec="0">0</span> kWh</span></div>
-          <div class="rc-row"><span class="rc-k">월 전기료 절감 (추정)</span><span class="rc-v hi"><span class="qual">약</span> 3,709만 원</span></div>
+          <div class="rc-row"><span class="rc-k">월 전기료 절감 (추정 · 분석 보고서, 기금 3.7%)</span><span class="rc-v hi"><span class="qual">약</span> 3,709만 원</span></div>
+          <div class="rc-row"><span class="rc-k">현행 기금 요율 2.7% 재계산</span><span class="rc-v"><span class="qual">약</span> <span id="hyRecalc2">—</span></span></div>
           <div class="rc-row"><span class="rc-k">연간 전기요금 절감효과</span><span class="rc-v hi"><span class="qual">약</span> 3억 8,322만 원</span></div>
           <div class="rc-row"><span class="rc-k">연간 총 경제적 효과</span><span class="rc-v hi"><span class="qual">약</span> 3억 9,588만 원</span></div>
           <div class="rc-row"><span class="rc-k">연간 온실가스 감축</span><span class="rc-v"><span class="qual">약</span> <span class="cu" data-to="904.17" data-dec="2">0</span> tCO₂</span></div>

@@ -9,6 +9,9 @@
 
 import { tariffById, tariffSavings, CHARGES } from './tariff.js';
 
+/** 계산 모델·가정값 버전 — 식이나 데모 가정값이 바뀌면 올린다 (문의로 전달되는 계산 조건에 함께 실린다) */
+export const MODEL_VERSION = 'sr-econ/2026-10-29';
+
 /** 가정값 정의. value 는 데모값이며 UI 에서 사용자가 바꿀 수 있다. */
 export const ASSUMPTIONS = [
   // 발전

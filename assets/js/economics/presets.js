@@ -21,6 +21,8 @@ export const SITE_PRESETS = {
       annualTotalKrw: 395880000, // 총 경제적 효과 (온실가스 저감가치 포함)
       co2Tons: 904.17, co2ValueKrw: 12660000,
       tou: { month: '2026.04', season: 'springFall', light: { kwh: 4873, rate: 116.0, krw: 570000 }, mid: { kwh: 165059, rate: 133.4, krw: 22020000 }, peak: { kwh: 46427, rate: 150.9, krw: 7010000 } },
+      fundRateApplied: 0.037,    // 분석 보고서가 적용한 전력산업기반기금 요율. 2026.04 당시 법정 요율은 2.7%('25.7.1~, 전기사업법 시행령 개정) — 재계산값은 selfuse.publishedMonthTotal() 로 함께 표시
+      climateKrwPerKwh: 9, fuelAdjKrwPerKwh: 5, vatRate: 0.10,
       note: '분석 당시 기금 요율 3.7% 적용. 기본요금·역률요금 변동 미포함.',
     },
   },

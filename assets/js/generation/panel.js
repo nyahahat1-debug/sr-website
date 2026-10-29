@@ -8,6 +8,10 @@
 //   · 오래된 자료(수집 창 안에서 3시간 넘게 갱신 없음, 또는 26시간 이상)는 '자료 지연' 으로 구분한다. 밤에는 수집이 없어 지연으로 보지 않는다.
 //   · 출력 0 은 실제 값으로 보여 주되, 야간·통신 이상(포털 표시 comm='Error')·자료 지연과 함께 읽히게 상태 문구를 붙인다.
 //   · 숫자가 아니면 '—' 로 표시한다. 파일이 없거나 JSON 이 깨지면 호출 쪽(loadAllSites)이 null 을 돌려 위젯을 숨긴다.
+// 자료 계약 v2 (2026-10-29, docs/handoff/GENERATION_DATA_CONTRACT.md) — 옛 자료(v1: updated 만 있음)와 호환:
+//   · collectedAt(수집 시각) 이 없으면 updated 를 쓴다. observedAt(포털 관측 시각) 은 자료에 있을 때만 "관측 MM.DD HH:MM" 으로 보여 준다 — 없다고 만들어 쓰지 않는다.
+//   · quality.status: ok | stale | comm_error | partial | unknown — 수집기가 판정한 값이 있으면 지연·통신 이상 판정에 우선 반영한다.
+//   · publish.allowed === false 인 현장은 표시하지 않는다 (공개 통제는 수집 단계에서 먼저 걸리고, 여기서는 2차 방어).
 // ─────────────────────────────────────────────────────────────
 const CSS = `
 .gn{--gn-ink:#0D1B2A;--gn-muted:#546E7A;--gn-line:#C8D8E8;--gn-sky:#0077B6;--gn-sun:#E8A317;--gn-bg:#F7FAFC;font-family:'Pretendard Variable','Pretendard',system-ui,sans-serif;color:var(--gn-ink)}
@@ -55,25 +59,31 @@ const fmt1 = v => (num(v) == null ? '—' : Number(v).toLocaleString('ko-KR', { 
 const kwh = v => (num(v) == null ? '—' : v >= 10000 ? (v / 1000).toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + ' MWh' : fmt0(v) + ' kWh');
 const pad = n => String(n).padStart(2, '0');
 
-/** 수집 시각 해석. 자료에 없으면 valid:false */
-export function freshness(updated, now = new Date()) {
+const stamp = t => `${t.getMonth() + 1}.${t.getDate()} ${pad(t.getHours())}:${pad(t.getMinutes())}`;
+/** 수집 시각 해석. 자료에 없으면 valid:false. observedAt(관측 시각)·quality(수집기 판정)가 있으면 함께 반영 */
+export function freshness(updated, now = new Date(), extra = {}) {
   const t = new Date(updated);
-  if (!updated || isNaN(t)) return { valid: false, text: '수집 시각 정보 없음', stale: false, ageMin: null };
+  const q = extra.quality && typeof extra.quality === 'object' ? extra.quality : null;
+  const qs = q && typeof q.status === 'string' ? q.status : null;
+  const ot = extra.observedAt ? new Date(extra.observedAt) : null;
+  const obsText = ot && !isNaN(ot) ? ` · 관측 ${stamp(ot)}` : '';
+  if (!updated || isNaN(t)) return { valid: false, text: '수집 시각 정보 없음' + obsText, stale: qs === 'stale', ageMin: null, quality: qs, observed: !!obsText };
   const ageMin = Math.round((now - t) / 60000);
   const hour = now.getHours();                                       // 표시 기기 시각 기준(현장과 같은 KST 가정)
   const inWindow = hour >= 7 && hour < 21;                           // 06~20시 매시 수집 → 07시 이후부터 지연 판단
-  const stale = ageMin > 26 * 60 || (inWindow && ageMin > 180);
-  const text = `수집 ${t.getMonth() + 1}.${t.getDate()} ${pad(t.getHours())}:${pad(t.getMinutes())}`;
-  return { valid: true, text, stale, ageMin, hour };
+  const stale = qs === 'stale' || ageMin > 26 * 60 || (inWindow && ageMin > 180);
+  const text = `수집 ${stamp(t)}` + obsText;
+  return { valid: true, text, stale, ageMin, hour, quality: qs, observed: !!obsText };
 }
 
 /** 현장 상태 문구: 발전 중 / 야간 대기 / 대기(주간 출력 0) / 포털 통신 이상 / 자료 지연 */
 export function siteState(s, fr, now = new Date()) {
   const now_kw = num(s.nowKw);
-  const commErr = s.comm === 'Error';
+  const commErr = s.comm === 'Error' || fr.quality === 'comm_error';
   const night = now.getHours() < 6 || now.getHours() >= 20;
   if (fr.stale) return { key: 'stale', text: '자료 지연 · 마지막 수집값 표시', dot: 'warn' };
   if (commErr) return { key: 'comm', text: '포털 통신 이상 표시 · 값은 마지막 수집값', dot: 'warn' };
+  if (fr.quality === 'partial' || fr.quality === 'unknown') return { key: 'quality', text: fr.quality === 'partial' ? '일부 자료 누락 · 값은 수집된 범위' : '자료 품질 미확인', dot: 'warn' };
   if (now_kw == null) return { key: 'nodata', text: '현재 출력 자료 없음', dot: 'off' };
   if (now_kw > 0 && s.status === 'Run') return { key: 'run', text: '발전 중', dot: '' };
   if (night) return { key: 'night', text: '야간 대기 (출력 0)', dot: 'off' };
@@ -107,9 +117,10 @@ function tile(k, v, unit) { return h('div', { class: 'gn-t' }, h('div', { class:
 export async function loadAllSites(base = 'assets/data/') {
   const get = u => fetch(base + u, { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).then(j => (j && typeof j === 'object') ? j : null).catch(() => null);
   const [g, hy] = await Promise.all([get('generation.json'), get('hyosung-generation.json')]);
-  const sites = (g && !g.sample && Array.isArray(g.sites)) ? g.sites.filter(s => s && typeof s === 'object').map(s => ({ ...s, updated: s.updated || g.updated })) : [];
+  const allowed = (s, root) => { const p = (s && s.publish) || (root && root.publish); return !(p && typeof p === 'object' && p.allowed === false); };   // 공개 금지 플래그 → 표시 안 함
+  const sites = (g && !g.sample && Array.isArray(g.sites)) ? g.sites.filter(s => s && typeof s === 'object' && allowed(s, g)).map(s => ({ ...s, updated: s.collectedAt || s.updated || g.collectedAt || g.updated, observedAt: typeof s.observedAt === 'string' ? s.observedAt : null, quality: s.quality && typeof s.quality === 'object' ? s.quality : null })) : [];
   const L = hy && hy.live && typeof hy.live === 'object' ? hy.live : null;
-  if (L && (num(L.todayKwh) != null || num(L.nowKw) != null)) {
+  if (L && (num(L.todayKwh) != null || num(L.nowKw) != null) && allowed(hy, null)) {
     const months = Array.isArray(hy.months) ? hy.months : [];
     const cur = months.find(m => m && m.partial) || null, prevM = months.filter(m => m && !m.partial).slice(-1)[0] || null;
     const feeds = Array.isArray(L.feeds) ? L.feeds : [];
@@ -119,13 +130,14 @@ export async function loadAllSites(base = 'assets/data/') {
       capacityKw: hy.capacityKw || hy.portalCapacityKw, portalCapacityKw: hy.portalCapacityKw, nowKw: num(L.nowKw), todayKwh: num(L.todayKwh), todayHours: L.todayHours,
       yesterdayKwh: null, monthKwh: num(L.monthKwh) != null ? L.monthKwh : (cur && num(cur.kwh)), monthHours: L.monthHours, prevMonthKwh: prevM && num(prevM.kwh), totalKwh: num(L.yearKwh),
       inverters: feeds.length, running: feeds.filter(f => (num(f.nowKw) || 0) > 0 || f.status === 'Normal').length,
-      status: (num(L.nowKw) || 0) > 0 ? 'Run' : 'Standby', comm: 'None', daySeries: L.daySeries || { t: [], kw: [] }, selfUse: true, updated: hy.updated, source: hy.source,
+      status: (num(L.nowKw) || 0) > 0 ? 'Run' : 'Standby', comm: hy.quality && hy.quality.status === 'comm_error' ? 'Error' : 'None', daySeries: L.daySeries || { t: [], kw: [] }, selfUse: true,
+      updated: hy.collectedAt || hy.updated, observedAt: typeof L.observedAt === 'string' ? L.observedAt : (typeof hy.observedAt === 'string' ? hy.observedAt : null), quality: hy.quality && typeof hy.quality === 'object' ? hy.quality : null, source: hy.source,
     });
   }
   for (const s of sites) if (!s.source && g && g.source) s.source = g.source;
   if (!sites.length) return null;
   const sum = k => { const v = sites.map(s => num(s[k])).filter(x => x != null); return v.length ? Math.round(v.reduce((a, b) => a + b, 0) * 10) / 10 : null; };
-  const updated = [g && g.updated, hy && hy.updated].filter(Boolean).sort().slice(-1)[0];
+  const updated = [g && (g.collectedAt || g.updated), hy && (hy.collectedAt || hy.updated)].filter(Boolean).sort().slice(-1)[0];
   return { sample: false, updated, source: [g && g.source, hy && hy.source].filter(Boolean).join(' · '), sites,
     totals: { capacityKw: sum('capacityKw'), nowKw: sum('nowKw'), todayKwh: sum('todayKwh'), monthKwh: sum('monthKwh'), totalKwh: sum('totalKwh'), sites: sites.length } };
 }
@@ -134,6 +146,7 @@ function stateLine(s, fr) {
   const st = siteState(s, fr);
   const parts = [h('span', { class: 'gn-dot ' + st.dot }), st.text];
   if (fr.stale) parts.push(h('span', { class: 'gn-badge' }, '자료 지연'));
+  else if (st.key === 'quality') parts.push(h('span', { class: 'gn-badge' }, fr.quality === 'partial' ? '일부 누락' : '품질 미확인'));
   return { st, el: h('div', { class: 'gn-cs' }, ...parts) };
 }
 
@@ -148,7 +161,7 @@ export function renderGenerationOverview(root, data) {
     tile('설비 용량', fmtCap(t.capacityKw), `kW · ${t.sites || data.sites.length}개 현장`)));
   const grid = h('div', { class: 'gn-grid' });
   for (const s of data.sites) {
-    const fr = freshness(s.updated || data.updated);
+    const fr = freshness(s.updated || data.updated, new Date(), s);
     const { el } = stateLine(s, fr);
     el.append(` · 지금 ${fmt1(s.nowKw)} kW · 용량 ${fmtCap(s.capacityKw)} kW`);
     const card = h(s.page ? 'a' : 'div', s.page ? { class: 'gn-c', href: s.page } : { class: 'gn-c' },
@@ -170,7 +183,7 @@ export function renderGenerationSite(root, data, opts = {}) {
   if (!data || data.sample || !Array.isArray(data.sites)) return false;
   const s = data.sites.find(x => x && ((opts.page && x.page === opts.page) || (opts.id && x.id === opts.id)));
   if (!s) return false;
-  const fr = freshness(s.updated || data.updated);
+  const fr = freshness(s.updated || data.updated, new Date(), s);
   const { el } = stateLine(s, fr);
   el.append(` · ${s.selfUse ? '피드' : '인버터'} ${fmt0(s.running)}/${fmt0(s.inverters)} 운전`);
   const box = h('div', { class: 'gn gn-site' });

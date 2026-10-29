@@ -3,6 +3,7 @@
 // mountCalculator(container, { prefill })
 // ─────────────────────────────────────────────────────────────
 import { ASSUMPTIONS, defaults, compute, demoKeys, fmt, summaryLine, applyMarket as applyMarketTo } from './model.js';
+import { calcRecord, encodeCalc } from './calc-transfer.js';
 import { TARIFFS, KINDS, SEASONS, SEASON_LABEL, BAND_LABEL, TOU_TEXT, TARIFF_SOURCE } from './tariff.js';
 import { SITE_PRESETS } from './presets.js';
 
@@ -241,7 +242,9 @@ export function mountCalculator(root, { prefill = {} } = {}) {
         `<tr><td>${y.y}</td><td>${fmt.mwh(y.gen)}</td><td>${fmt.krw(sell ? y.sale : y.saving)}</td>${sell ? '' : `<td>${fmt.krw(y.sale)}</td>`}<td>${fmt.krw(y.opex)}</td>${r.loan > 0 ? `<td>${fmt.krw(y.debt)}</td>` : ''}<td>${fmt.krw(y.net)}</td><td class="${y.cum < 0 ? 'neg' : ''}">${fmt.krw(y.cum)}</td></tr>`).join('')}</tbody></table>`;
     }
     const summary = summaryLine(r, a, edited);
-    ctaLink.href = 'contact.html?calc=' + encodeURIComponent(summary) + '#form';
+    // 사람이 읽는 요약(?calc=) + 구조화된 계산 조건(?calcd=, 개인정보 없음). 받는 쪽이 같은 모델로 재계산해 검증한다.
+    const rec = calcRecord({ r, a, input, market: { basis: market.data && market.basis !== 'manual' ? market.basis : 'manual', updated: market.data && market.data.updated, applied: mk }, edited });
+    ctaLink.href = 'contact.html?calc=' + encodeURIComponent(summary) + (rec ? '&calcd=' + encodeCalc(rec) : '') + '#form';
   }
   if (prefill.preset) applyPreset(prefill.preset);
   render();

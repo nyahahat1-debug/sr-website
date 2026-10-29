@@ -42,6 +42,17 @@ export function monthlySelfUse({ kwh, ym, tariffId = DEFAULT_TARIFF, charges }) 
   };
 }
 
+/**
+ * 공개 분석(사례 페이지)의 시간대 배분 그대로 월 절감액을 다시 계산한다 — 기금 요율만 바꿔 비교할 때 쓴다.
+ * pub = presets.published (tou.light/mid/peak {kwh, rate}, monthGenKwh, climateKrwPerKwh, fuelAdjKrwPerKwh, vatRate)
+ */
+export function publishedMonthTotal(pub, fundRate) {
+  const t = pub.tou; const energy = t.light.kwh * t.light.rate + t.mid.kwh * t.mid.rate + t.peak.kwh * t.peak.rate;
+  const kwh = pub.monthGenKwh; const subtotal = energy + kwh * (pub.climateKrwPerKwh ?? 9) + kwh * (pub.fuelAdjKrwPerKwh ?? 5);
+  const vat = subtotal * (pub.vatRate ?? 0.10), fund = subtotal * fundRate;
+  return { energy, subtotal, vat, fund, fundRate, total: subtotal + vat + fund };
+}
+
 /** 여러 달 합산 + 배출권 가치 */
 export function summarize(months, carbonPrice) {
   const rows = months.map(x => { const r = monthlySelfUse(x); r.carbonKrw = r.co2T * (carbonPrice || 0); r.benefit = r.total + r.carbonKrw; return r; });

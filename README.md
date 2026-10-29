@@ -22,6 +22,14 @@
 - 경제성 분석 페이지의 예시 카드는 계산기와 같은 모델(`assets/js/economics/model.js`)로 산출합니다(`assets/js/pages/analysis-hero.js`). 회수기간은 누적 현금흐름 기준이고 상세에 단순 회수기간을 따로 보여 줍니다.
 - 검사: `node tools/model_test.mjs`(계산 모델), `NODE_PATH=<playwright-core> node tools/ui_tests.js`(폼·사전 선택·위젯, 로컬 서버 필요, 외부 전송 없음), `node tools/mobile_audit.js`(화면 점검).
 
+## 문의 접수 API · 계산 조건 전달 · 발전 자료 계약 (2026-10-29 2단계 개선)
+- 문의 전송은 UI(`assets/js/pages/contact-main.js`)와 공급자 구현(`assets/js/contact/transport.js`)으로 나뉩니다. 어느 공급자를 쓸지는 `assets/js/contact/config.js` 가 정하며, 현재는 Web3Forms 입니다. 자체 접수 API 는 주소가 확정되면 `intakeApiUrl` 과 CSP(`tools/security_meta.py`)를 바꿔 켭니다. 한 번의 제출은 공급자 하나로만 보내고, 실패·시간초과 시 다른 공급자로 자동 우회하지 않습니다. 계약 초안: `docs/handoff/INTAKE_API_CONTRACT.md`(로컬 문서).
+- 요청 식별자(32자리 무작위)는 같은 내용을 재시도하면 같은 값, 내용이 바뀌면 새 값입니다. 서버 접수번호(접수 API 응답)와 브라우저 참조번호(`SR-YYMMDD-XXXX`)는 구분해 표시합니다.
+- 계산기 → 문의 링크는 요약(`?calc=`)과 함께 구조화된 계산 조건(`?calcd=`, 개인정보 없음)을 넘깁니다. 문의 페이지는 같은 모델로 재계산해 일치할 때만 받고, 아니면 요약만 씁니다(`assets/js/economics/calc-transfer.js`).
+- 발전 자료 계약 v2(`collectedAt`·`observedAt`·`quality`·`publish`)는 `docs/handoff/GENERATION_DATA_CONTRACT.md` 에 있습니다. 현장별 공개 동의는 `tools/generation_sites.json` 의 `publish.status`(granted/pending/denied)로 관리하고, denied 는 수집기가 공개 JSON 에서 제외합니다. 포털 관측 시각은 자료에 없으면 비워 둡니다.
+- 효성 사례의 월 절감 3,709만 원은 분석 보고서 값(기금 3.7%)이고, 예시 월에 적용되는 현행 요율 2.7%로 재계산한 값을 함께 표시합니다. 수전합리화 "20~30%" 는 근거가 없어 제거하고 확인된 사례(약 31%, 1건)만 표기합니다.
+- 검사: `node tools/model_test.mjs`, `python tools/collector_test.py`, `NODE_PATH=<playwright-core> node tools/ui_tests_phase2.js`(로컬 서버 필요, 외부 전송 없음).
+
 ## 보안 규칙
 - 모든 페이지에 Content-Security-Policy 메타가 걸려 있어 인라인 `<script>` 와 `onclick` 같은 인라인 속성은 동작하지 않습니다. 스크립트는 `assets/js/` 아래 파일로 두고 `<script src>` 로 불러오세요.
 - 새 외부 도메인(폰트·API·iframe)이 필요하면 `tools/security_meta.py` 의 `EXTRA` 에 추가한 뒤 `python tools/security_meta.py --write` 를 실행합니다.
